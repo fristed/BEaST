@@ -1,0 +1,107 @@
+mincbeast - implementation of BEaST
+
+This is a C implementation of BEaST (Brain Extraction using non-local
+Segmentation Technique).
+
+mincbeast works with MINC1 and MINC2 images. However, experimental
+support for the NIfTI format has been added. This has not yet been
+tested thoroughly.
+
+mincbeast needs a library of priors to work (see below).
+
+Compiling
+---------
+mincbeast requires either MINC or NIfTI libraries. mincbeast has been
+tested on Debian type Linux systems, such as Ubuntu.
+To configure type:
+
+ccmake CMakeLists.txt
+
+and set the right paths. Then
+
+make
+make install
+
+Troubleshooting:
+NIFTI_ROOT should be set to /usr if you installed NIfTI libraries
+using the package libnifti-dev
+If the compiler cannot find hdf5.h you probably need to install
+libhdf5-serial-dev
+
+Library
+-------
+The library folder MUST contain these files:
+library.masks.1mm
+library.masks.2mm
+library.masks.4mm
+library.stx.1mm
+library.stx.2mm
+library.stx.4mm
+
+mincbeast will try to access these six files.
+
+The library.stx.* files contain filenames of the normalized images at
+different voxel sizes as evident from the filename (1mm, 2mm, 4mm). It
+is important that the filenames are in the same order across the
+library files. mincbeast uses the line number in the files to link
+images at different resolutions, as well as linking the images to the
+segmentations.
+Similarly, the library.masks.* files contain filenames of the "expert"
+segmentations at different voxel sizes.
+
+mincbeast assumes that all images are in the same space and have the
+same origin. This is not checked at runtime and will lead to errors if
+it is not fulfilled.
+
+2mm and 4mm images can be generated from the 1mm images using simple
+downsampling.
+
+mincbeast uses a simple intensity based comparison metric. Thus, it is
+very important that the intensities of the library images have been
+normalized.
+
+
+Usage
+-----
+mincbeast [options] <library dir> <input> <mask> <output>
+
+<library>: path to the library
+<input>: input image
+<mask>: binary mask to limit the segmentation
+<output>: output segmentation
+
+
+Example
+-------
+mincbeast ~/beast/ t1w.mnc ~/beast/margin_mask.mnc output.mnc \\
+-positive ~/beast/intersection_mask.mnc -conf \\
+~/beast/conf/default.1mm.conf -fill -median
+
+Explanation of the options:
+ -positive:         a binary mask with positive segmentation (inside mask).
+ 		    this will be added to the final segmentation
+
+ -configuration:    a configuration file.
+ 		    see the 'conf' folder for example configurations
+
+ -fill:             fill holes in the binary output.
+ 		    just in case we get errors inside
+
+ -median:           apply a median filter on the probability map.
+ 		    makes the segmentation slightly more robust
+
+Reference
+---------
+Please cite BEaST as:
+
+Simon F. Eskildsen, Pierrick Coupé, Vladimir Fonov, José V. Manjón,
+Kelvin K. Leung, Nicolas Guizard, Shafik N. Wassef, Lasse R. Østergaard,
+D. Louis Collins, and The Alzheimer's Disease Neuroimaging Initiative,
+BEaST: Brain extraction based on nonlocal segmentation technique,
+NeuroImage, vol. 59(3), pp. 2362-2373.
+ISSN 1053-8119, 10.1016/j.neuroimage.2011.09.012.
+
+Contact
+-------
+For questions and feedback, please contact
+Simon Fristed Eskildsen <eskild@gmail.com> 
