@@ -27,6 +27,8 @@
 #endif //HAVE_CONFIG_H
 
 #include <stdlib.h>
+#include <unistd.h>
+
 #include "ParseArgv.h"
 #include "array_alloc.h"
 #include "nlmseg.h"
@@ -169,7 +171,16 @@ ArgvInfo argTable[] = {
 
   if(!clobber)
   {
-//     if(access(
+     if(!access(output_file,F_OK))
+     {
+       fprintf(stderr,"ERROR! File exitst: %s , run with -clobber\n",output_file);
+       return STATUS_ERR;
+     }
+     if(count_file && !access(count_file,F_OK))
+     {
+       fprintf(stderr,"ERROR! File exitst: %s , run with -clobber\n",count_file);
+       return STATUS_ERR;
+     }
   }
 
   if (targetvoxelsize>voxelsize){
