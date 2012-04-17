@@ -84,6 +84,6 @@ int read_configuration(char *filename, beast_conf *conf);
 int read_list(char *filename, char **list,char *basedir);
 
 image_metadata * read_volume(char *filename, float **data, int *sizes);
-int write_volume_generic(char *filename, float *data, image_metadata *meta);
+int write_volume_generic(char *filename, float *data, image_metadata *meta,BOOLEAN binary_mask );
 
 #endif

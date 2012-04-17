@@ -1,41 +1,98 @@
-PROJECT (mincbeast)
-CMAKE_MINIMUM_REQUIRED(VERSION 2.4)
-if(COMMAND cmake_policy)
- cmake_policy(SET CMP0003 OLD)
-endif(COMMAND cmake_policy)
+SET(BEAST_PACKAGE_VERSION_MAJOR 1)
+SET(BEAST_PACKAGE_VERSION_MINOR 12)
+SET(BEAST_PACKAGE_VERSION_PATCH 00)
+
+IF(NOT MINC_TOOLKIT_BUILD)
+  PROJECT(mincbeast)
+  #SET(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake-modules")
+  ENABLE_TESTING()
+  INCLUDE(CTest)
+
+  # Packaging defines
+  SET(CPACK_PACKAGE_VERSION_MAJOR ${BEAST_PACKAGE_VERSION_MAJOR})
+  SET(CPACK_PACKAGE_VERSION_MINOR ${BEAST_PACKAGE_VERSION_MINOR})
+  SET(CPACK_PACKAGE_VERSION_PATCH ${BEAST_PACKAGE_VERSION_PATCH})
+  INCLUDE(CPack)
+  CMAKE_MINIMUM_REQUIRED(VERSION 2.4)
+  
+  if(COMMAND cmake_policy)
+  cmake_policy(SET CMP0003 OLD)
+  endif(COMMAND cmake_policy)
+  
+  FIND_PACKAGE( MINC2 QUIET )
+  
+  OPTION(USE_NIFTI      "Use niftiio library" ON)
+  OPTION(USE_DMALLOC    "Use dmalloc library to debug memory leaks" OFF)
+  
+  IF(USE_NIFTI)
+    SET(NIFTI_ROOT "/usr/local/bic" CACHE PATH "niftiio library base")
+  ENDIF(USE_NIFTI)
+  
+ENDIF(NOT MINC_TOOLKIT_BUILD)
+
+
+SET(PACKAGE "mincbeast")
+
+SET(PACKAGE_BUGREPORT "eskild@gmail.com")
+
+SET(PACKAGE_NAME "mincbeast")
+SET(PACKAGE_VERSION "${BEAST_PACKAGE_VERSION_MAJOR}.${BEAST_PACKAGE_VERSION_MINOR}.${BEAST_PACKAGE_VERSION_PATCH}")
+SET(PACKAGE_STRING "${PACKAGE_NAME} ${PACKAGE_VERSION}")
+
+#setup variables only needed inside scripts
+SET(version ${PACKAGE_VERSION})
+SET(long_version ${PACKAGE_STRING})
+SET(VERSION "${PACKAGE_VERSION}")
+
+ADD_DEFINITIONS(-DHAVE_CONFIG_H)
+
+# check for prereqs
+# INCLUDE(CheckFunctionExists)
+INCLUDE(CheckIncludeFiles)
+
+# CHECK_FUNCTION_EXISTS(finite   HAVE_FINITE)
+# CHECK_FUNCTION_EXISTS(isfinite HAVE_ISFINITE)
+
+CHECK_INCLUDE_FILES(float.h     HAVE_FLOAT_H)
+CHECK_INCLUDE_FILES(sys/stat.h  HAVE_SYS_STAT_H)
+CHECK_INCLUDE_FILES(sys/types.h HAVE_SYS_TYPES_H)
+CHECK_INCLUDE_FILES(values.h    HAVE_VALUES_H)
+CHECK_INCLUDE_FILES(unistd.h    HAVE_UNISTD_H)
+CHECK_INCLUDE_FILES(dirent.h    HAVE_DIRENT_H)
+CHECK_INCLUDE_FILES(memory.h    HAVE_MEMORY_H)
+CHECK_INCLUDE_FILES(malloc.h    HAVE_MALLOC_H)
+CHECK_INCLUDE_FILES(stdlib.h    HAVE_STDLIB_H)
+CHECK_INCLUDE_FILES(fcntl.h     HAVE_FCNTL_H)
+CHECK_INCLUDE_FILES(vfork.h     HAVE_VFORK_H)
+CHECK_INCLUDE_FILES(inttypes.h  HAVE_INTTYPES_H)
+CHECK_INCLUDE_FILES(string.h    HAVE_STRING_H)
+CHECK_INCLUDE_FILES(strings.h   HAVE_STRINGS_H)
+
+SET(BEAST_LIBRARY_PREFIX "${CMAKE_INSTALL_PREFIX}/share/mincbeast_free")
+
+# others
+CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
+
+INCLUDE_DIRECTORIES( ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_SOURCE_DIR}/include )
+
 
 SET(BEAST_SRC 
   alloc.c beast_lib.c distance_patch.c moments.c nlm_utils.c nlmfilter.c nlmsegFuzzy.c label.c ParseArgv.c
 )
 
-OPTION(USE_MINC      "Use minc1/minc2 library" ON)
 
-IF(USE_MINC)
+IF(MINC2_FOUND)
+  INCLUDE( ${MINC2_USE_FILE} )
+
   SET(BEAST_SRC ${BEAST_SRC} mincio.c)
-  SET(MINC_ROOT "/usr/local/bic" CACHE PATH "minc library base")
   ADD_DEFINITIONS( -DHAVE_MINC )
-  OPTION(USE_MINC2      "Use minc 2 library" ON)
-  LINK_DIRECTORIES(
-    "${MINC_ROOT}/lib"
-  )
-  INCLUDE_DIRECTORIES( 
-    "${MINC_ROOT}/include"
-  )
-  IF(USE_MINC2)
-    ADD_DEFINITIONS( -DMINC2 )
-    LINK_LIBRARIES(volume_io2 minc2 netcdf hdf5 z m)
-  ELSE(USE_MINC2)
-    LINK_LIBRARIES(volume_io minc netcdf m)
-  ENDIF(USE_MINC2)
-ENDIF(USE_MINC)
+  #LINK_LIBRARIES( ${VOLUME_IO_LIBRARIES} ${MINC2_LIBRARIES} )
+ENDIF(MINC2_FOUND)
 
-OPTION(USE_NIFTI      "Use niftiio library" ON)
-OPTION(USE_DMALLOC    "Use dmalloc library to debug memory leaks" OFF)
 
 IF(USE_NIFTI)
   ADD_DEFINITIONS( -DHAVE_NIFTI )
   LINK_LIBRARIES(niftiio znz z m)
-  SET(NIFTI_ROOT "/usr/local/bic" CACHE PATH "niftiio library base")
   SET(BEAST_SRC ${BEAST_SRC} niftiio.c)
   LINK_DIRECTORIES(
     "${NIFTI_ROOT}/lib"
@@ -51,9 +108,11 @@ IF(USE_DMALLOC)
   LINK_LIBRARIES(dmalloc)
 ENDIF(USE_DMALLOC)
 
-ADD_LIBRARY(beast 
+ADD_LIBRARY(beast  STATIC 
   ${BEAST_SRC}
 )
+
+TARGET_LINK_LIBRARIES(beast ${VOLUME_IO_LIBRARIES} ${MINC2_LIBRARIES} )
 
 ADD_EXECUTABLE(mincbeast
   mincbeast.c
@@ -61,16 +120,16 @@ ADD_EXECUTABLE(mincbeast
 
 TARGET_LINK_LIBRARIES(mincbeast beast)
 
-IF(USE_MINC)
-IF(USE_NIFTI)
+IF(MINC2_FOUND AND USE_NIFTI)
   ADD_EXECUTABLE(minc2nifti
     minc2nifti.c
     )
   TARGET_LINK_LIBRARIES(minc2nifti beast)
-ENDIF(USE_NIFTI)
-ENDIF(USE_MINC)
-
+ENDIF(MINC2_FOUND AND USE_NIFTI)
 
 INSTALL(TARGETS 
         mincbeast
         RUNTIME DESTINATION bin )
+
+
+# TODO download and create average models

@@ -787,7 +787,7 @@ image_metadata * read_volume(char *filename, float **data, int *sizes){
   return meta;
 }
 
-int write_volume_generic(char *filename, float *data, image_metadata *meta){
+int write_volume_generic(char *filename, float *data, image_metadata *meta,BOOLEAN binary_mask){
 
 #ifdef DEBUG
   fprintf(stderr,"WRITE: Dimension sizes: %d, %d, %d\n",meta->length[0],meta->length[1],meta->length[2]);
@@ -798,7 +798,7 @@ int write_volume_generic(char *filename, float *data, image_metadata *meta){
   /* if minc format */
   if (!strcmp("mnc",filename + strlen(filename)-3)){
     #ifdef HAVE_MINC
-    write_minc(filename, data, meta);
+    write_minc(filename, data, meta,binary_mask);
     #else
     fprintf(stderr,"WRITE:Unsupported file format!\n");
     #endif 
@@ -806,7 +806,7 @@ int write_volume_generic(char *filename, float *data, image_metadata *meta){
   }else{
     #ifdef HAVE_NIFTI
     /* assume nifti */
-    write_nifti_generic(filename, data, meta);
+    write_nifti_generic(filename, data, meta);/*TODO: can nifti write binary masks?*/
     #else
     fprintf(stderr,"WRITE:Unsupported file format!\n");
     #endif 

@@ -33,7 +33,7 @@ void set_volume(float *data, Volume vol, int *sizes);
 void get_volume(float *data, Volume vol, int *sizes);
 int write_volume(char *name, Volume vol, float *data);
 
-int write_minc(char *filename, float *image, image_metadata *meta);
+int write_minc(char *filename, float *image, image_metadata *meta,BOOLEAN binary_mask);
 image_metadata * read_minc(char *filename, float **image, int *sizes);
 
 #endif

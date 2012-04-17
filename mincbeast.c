@@ -22,6 +22,9 @@
  *  Simon Fristed Eskildsen <eskild@gmail.com> 
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif //HAVE_CONFIG_H
 
 #include <stdlib.h>
 #include "ParseArgv.h"
@@ -59,6 +62,9 @@ int main(int argc, char  *argv[] )
   BOOLEAN medianfilter = FALSE;
   BOOLEAN patchfilter = FALSE;
   BOOLEAN relpath = FALSE;
+  BOOLEAN same_res = FALSE;
+  BOOLEAN clobber  = FALSE;
+  
   int sizepatch = 3;
   int searcharea = 5;
   double alpha = 0.2;
@@ -66,11 +72,16 @@ int main(int argc, char  *argv[] )
   double threshold = 0.97;
   int selectionsize = 20;
   int voxelsize=4;
-  int targetvoxelsize=1;
+  int targetvoxelsize=2;
   char *positive_file=NULL;
   char *selection_file=NULL;
   char *count_file=NULL;
   char *conf_file=NULL;
+  
+  char *default_beast_library=BEAST_LIBRARY_PREFIX;
+  char *default_beast_mask=BEAST_LIBRARY_PREFIX"/margin_mask.mnc";
+  char *default_beast_positive_file=BEAST_LIBRARY_PREFIX"/intersection_mask.mnc";
+  char *default_beast_config=BEAST_LIBRARY_PREFIX"/default.2mm.conf";
 
 /* Argument table */
 ArgvInfo argTable[] = {
@@ -88,6 +99,8 @@ ArgvInfo argTable[] = {
      "Apply an NLM filter on the probability map (experimental)."},
   {"-verbose", ARGV_CONSTANT, (char *) TRUE, (char *) &verbose,
      "Enable verbose output."},
+  {"-clobber", ARGV_CONSTANT, (char *) TRUE, (char *) &clobber,
+     "clobber output files"},
   {"-relpath", ARGV_CONSTANT, (char *) TRUE, (char *) &relpath,
      "File paths in the library are relative to library root."},
   {"-selection_num", ARGV_INT, (char *) 1, (char *) &selectionsize,
@@ -114,25 +127,50 @@ ArgvInfo argTable[] = {
    "Specify file to output the patch count."},
   {"-configuration", ARGV_STRING, (char *) 1, (char *) &conf_file,
    "Specify configuration file."},
+  {"-same_resolution", ARGV_CONSTANT, (char *) TRUE, (char *) &same_res,
+     "Output final mask with the same resolution as input file."},
+
   {NULL, ARGV_END, NULL, NULL, NULL}
 };        
 
  fprintf(stderr,"\nmincbeast --\t\tan implementation of BEaST (Brain Extraction\n\t\t\tusing non-local Segmentation Technique) version 0.1\n\n");
 
   /* Get arguments */
-  if (ParseArgv(&argc, argv, argTable, 0) || (argc < 4)) {
+  if (ParseArgv(&argc, argv, argTable, 0) || (argc < 3)) {
     (void) fprintf(stderr,LICENSE);
     (void) fprintf(stderr, 
-		   "\nUsage: %s [options] <library dir> <input> <mask> <output>\n",argv[0]);
+		   "\nUsage: %s [options] <library dir> <input> <mask> <output> or <input> <output> ( library dir = %s, mask=%s , positive_file=%s)\n",
+                    argv[0],default_beast_library,default_beast_mask,default_beast_positive_file);
     (void) fprintf(stderr,"       %s -help\n\n", argv[0]);
     
     exit(STATUS_ERR);
   }
+  if(argc>3)
+  {
+    libdir = argv[argc-4];
+    input_file = argv[argc-3];
+    mask_file = argv[argc-2]; 
+    output_file = argv[argc-1];
+  } else {
+    libdir = default_beast_library;
+    input_file = argv[argc-2];
+    mask_file =  default_beast_mask; 
+    output_file = argv[argc-1];
+    
+    positive_file=default_beast_positive_file;
+    //targetvoxelsize=4;
+    conf_file=default_beast_config;
+    medianfilter=TRUE;
+    relpath=TRUE;
+    fill_output=TRUE;
+    same_res=TRUE;
+    fprintf(stderr,"WARNING: Running mincbeast with default parameters:\n -median -relpath -configuration %s -positive %s -fill -same_resolution\n",conf_file,positive_file);
+  }
 
-  libdir = argv[argc-4];
-  input_file = argv[argc-3];
-  mask_file = argv[argc-2]; 
-  output_file = argv[argc-1];
+  if(!clobber)
+  {
+//     if(access(
+  }
 
   if (targetvoxelsize>voxelsize){
     fprintf(stderr,"ERROR! Final voxel size must smaller or equal to initial voxel size\n");
@@ -269,7 +307,7 @@ ArgvInfo argTable[] = {
     }
   }
   
-  read_volume(images[0][0], &tempdata, tmpsizes);
+  read_volume(mask_file, &tempdata, tmpsizes);
   if ((tmpsizes[0]!=sizes[0][0]) || (tmpsizes[1]!=sizes[0][1]) || (tmpsizes[2]!=sizes[0][2])){
     fprintf(stderr,"ERROR! Image dimension does not match library image dimension!\n");
     return STATUS_ERR;
@@ -297,7 +335,7 @@ ArgvInfo argTable[] = {
     selection = (int *)malloc(configuration[scale].selectionsize*sizeof(*selection));
     pre_selection(subject[scale], mask[scale], images[scale], sizes[scale], num_images, configuration[scale].selectionsize, selection, selection_file,verbose);
     
-    fprintf(stderr,"Performing segmentation at %dmm resolution\nReading files ",scales[scale]);
+    if (verbose) fprintf(stderr,"Performing segmentation at %dmm resolution\nReading files ",scales[scale]);
     
     scaledvolumesize = sizes[scale][0]*sizes[scale][1]*sizes[scale][2];
 
@@ -308,37 +346,36 @@ ArgvInfo argTable[] = {
     
     /* read the libray images, masks, and moments */
     for (i=0;i<configuration[scale].selectionsize;i++){
-      fprintf(stderr,".");
+      if (verbose) fprintf(stderr,".");
       read_volume(images[scale][selection[i]], &tempdata, tmpsizes);     
       cp_volume(tempdata, imagedata+i*scaledvolumesize, tmpsizes);
       free(tempdata);
     }
-    fprintf(stderr,"*");    
+    if (verbose) fprintf(stderr,"*");    
     for (i=0;i<configuration[scale].selectionsize;i++){
-      fprintf(stderr,".");
+      if (verbose) fprintf(stderr,".");
       read_volume(masks[scale][selection[i]], &tempdata, tmpsizes);     
       cp_volume(tempdata, maskdata+i*scaledvolumesize, tmpsizes);
       free(tempdata);
-
     }
-    fprintf(stderr,"*");
+    if (verbose) fprintf(stderr,"*");
 
     if (!load_moments){
       /* calculate the mean and variance for the library images */
       /* this must be done if the selected patch size is different from the one used in the precalculation */
       for (i=0;i<configuration[scale].selectionsize;i++){
-	fprintf(stderr,"c");
+	if (verbose) fprintf(stderr,"c");
 	ComputeFirstMoment(imagedata+i*scaledvolumesize, meandata+i*scaledvolumesize, sizes[scale], configuration[scale].patchsize, &min, &max);
 	ComputeSecondMoment(imagedata+i*scaledvolumesize, meandata+i*scaledvolumesize, vardata+i*scaledvolumesize, sizes[scale], configuration[scale].patchsize, &min, &max);
       }
     }else{
       for (i=0;i<configuration[scale].selectionsize;i++){
-	fprintf(stderr,".");
+	if (verbose) fprintf(stderr,".");
 	read_volume(means[scale][selection[i]], &tempdata, tmpsizes);     
 	cp_volume(tempdata, meandata+i*scaledvolumesize, tmpsizes);
 	free(tempdata);
       }
-      fprintf(stderr,"*");    
+      if (verbose) fprintf(stderr,"*");    
       for (i=0;i<configuration[scale].selectionsize;i++){
 	fprintf(stderr,".");
 	read_volume(vars[scale][selection[i]], &tempdata, tmpsizes);     
@@ -346,13 +383,13 @@ ArgvInfo argTable[] = {
 	free(tempdata);
       }
     }
-    fprintf(stderr,"\n");
+    if (verbose) fprintf(stderr,"\n");
     /* end of reading files */
 
     /* remove any disconnected parts */
     masksize = getLargestObject_float(mask[scale], sizes[scale], 1, 0);
     
-    fprintf(stderr,"Mask size: %d\nAlpha: %f\n",masksize,configuration[scale].alpha);
+    if (verbose) fprintf(stderr,"Mask size: %d\nAlpha: %f\n",masksize,configuration[scale].alpha);
     
     /* make sure we starting from a clean slate */
     wipe_data(segsubject[scale],sizes[scale],0.0);
@@ -410,25 +447,32 @@ ArgvInfo argTable[] = {
         
     free(selection);
   } // for each scale
-
-  if (!outputprob){
-    fprintf(stderr,"Thresholding estimator at %f\n",configuration[targetscale].alpha);
+  
+  if (count_file!=NULL) {
+    write_volume_generic(count_file, patchcount[targetscale], meta[targetscale],FALSE);
+  }
+  
+  if(targetscale!=0 && same_res) /* need to upsample final output */
+  {
+    resize_trilinear(segsubject[targetscale], sizes[targetscale], sizes[0], segsubject[0]);
+    masksize=update_mask(segsubject[0], mask[0], segmented[0], sizes[0], configuration[targetscale].alpha, 1.0-configuration[targetscale].alpha);
+    targetscale=0;
+  }
+  
+  if (!outputprob) {
+    if (verbose) fprintf(stderr,"Thresholding estimator at %f\n",configuration[targetscale].alpha);
     threshold_data(segsubject[targetscale], sizes[targetscale], configuration[targetscale].alpha);
     getLargestObject_float(segsubject[targetscale], sizes[targetscale], 1, 0);
 
-    if (fill_output){
+    if (fill_output) {
       wipe_data(mask[targetscale], sizes[targetscale], 1.0);
       filled = flood_fill_float(segsubject[targetscale], mask[targetscale], sizes[targetscale], 0, 0, 0, 0, 6);
       segsubject[targetscale]=mask[targetscale];
     }
-
   }
+  
+  write_volume_generic(output_file, segsubject[targetscale], meta[targetscale],!outputprob);
 
-  write_volume_generic(output_file, segsubject[targetscale], meta[targetscale]);
-
-  if (count_file!=NULL){
-    write_volume_generic(count_file, patchcount[targetscale], meta[targetscale]);
-  }
 
   free_2d_float(subject);  
   if (positive_file!=NULL)
