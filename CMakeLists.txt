@@ -131,5 +131,6 @@ INSTALL(TARGETS
         mincbeast
         RUNTIME DESTINATION bin )
 
-
+INSTALL(DIRECTORY free_database/
+        DESTINATION share/mincbeast_free )
 # TODO download and create average models
