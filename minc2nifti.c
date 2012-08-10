@@ -39,7 +39,7 @@ int main(int argc, char  *argv[] )
   meta = read_volume(argv[1], &input, sizes);
 
   if (meta != NULL)
-    write_volume_generic(argv[2], input, meta);
+    write_volume_generic(argv[2], input, meta,FALSE);
 
   return 0;
 }
