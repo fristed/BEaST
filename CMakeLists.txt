@@ -1,5 +1,5 @@
 SET(BEAST_PACKAGE_VERSION_MAJOR 1)
-SET(BEAST_PACKAGE_VERSION_MINOR 13)
+SET(BEAST_PACKAGE_VERSION_MINOR 14)
 SET(BEAST_PACKAGE_VERSION_PATCH 00)
 
 IF(NOT MINC_TOOLKIT_BUILD)
@@ -68,7 +68,7 @@ CHECK_INCLUDE_FILES(inttypes.h  HAVE_INTTYPES_H)
 CHECK_INCLUDE_FILES(string.h    HAVE_STRING_H)
 CHECK_INCLUDE_FILES(strings.h   HAVE_STRINGS_H)
 
-SET(BEAST_LIBRARY_PREFIX "${CMAKE_INSTALL_PREFIX}/share/mincbeast_free")
+SET(BEAST_LIBRARY_PREFIX "${CMAKE_INSTALL_PREFIX}/share/beast-library-1.0")
 
 # others
 CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
@@ -129,6 +129,7 @@ INSTALL(TARGETS
         mincbeast
         RUNTIME DESTINATION bin )
 
-INSTALL(DIRECTORY free_database/
-        DESTINATION share/mincbeast_free )
+# VF: now this will be in a separate project
+# INSTALL(DIRECTORY free_database/
+#         DESTINATION share/mincbeast_free )
 # TODO download and create average models
