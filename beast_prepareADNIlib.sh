@@ -1,0 +1,148 @@
+#  beast_preparelib.sh
+#
+#  Copyright 2011  Simon Fristed Eskildsen, Vladimir Fonov,
+#   	      	    Pierrick Coupé, Jose V. Manjon
+#
+#  This file is part of mincbeast.
+#
+#  mincbeast is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  mincbeast is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with mincbeast.  If not, see <http://www.gnu.org/licenses/>.
+#
+#  For questions and feedback, please contact:
+#  Simon Fristed Eskildsen <eskild@gmail.com> 
+
+#!/bin/bash
+num_args=2
+usage_string="<ADNI root> <BEaST library dir>"
+options_string="\t-flip"
+
+unset list
+declare -a list
+listcount=0
+
+flip=0
+
+while [ 0 -eq 0 ]
+do
+  case "$1" in
+  -fl*)
+    flip=1
+    shift
+    ;;
+  *)
+    if [ "$1" != "" ]; then
+	list=( "${list[@]}" "$1" )
+	let listcount=listcount+1
+	shift
+    else
+	break
+    fi
+  esac
+done
+
+# get number of entries
+max=${#list[*]}
+
+test $max -lt $num_args && echo -e "Usage: `basename $0` $usage_string\nOptions:\n$options_string" && exit 
+
+root=${list[0]}
+outdir=${list[1]}
+
+if [ -f /opt/minc/minc-toolkit-config.sh ]; then
+    source /opt/minc/minc-toolkit-config.sh
+else
+    echo "Minc-toolkit not found in /opt/minc"
+    exit
+fi
+
+tmp=`mktemp -d`
+
+echo Preparing library...
+
+mkdir -p $outdir/ADNI/stx/1mm
+mkdir -p $outdir/ADNI/stx/2mm
+mkdir -p $outdir/ADNI/stx/4mm
+mkdir -p $outdir/ADNI/masks/1mm
+mkdir -p $outdir/ADNI/masks/2mm
+mkdir -p $outdir/ADNI/masks/4mm
+
+ls -1 $root/*/BEaST_normalized_MPRAGE/*/*/*.mnc > $tmp/t1s
+ls -1 $root/*/BEaST_manual_brain_mask/*/*/*.mnc > $tmp/masks
+imagelist=$tmp/t1s
+masklist=$tmp/masks
+
+isize=`wc -l $imagelist|cut -f1 -d' '`
+msize=`wc -l $masklist|cut -f1 -d' '`
+
+if [ $isize -ne $msize ]; then
+    echo Number of images and masks must match!
+    echo $isize $msize
+    exit
+fi
+
+for i in `cat $imagelist`; do
+    # cp -u $i $outdir/ADNI/stx/1mm/
+    mincconvert -2 $i $outdir/ADNI/stx/1mm/`basename $i`
+done
+for m in `cat $masklist`; do
+    # cp -u $m $outdir/ADNI/masks/1mm/
+    mincconvert -2 $m $outdir/ADNI/masks/1mm/`basename $m`
+done
+    
+if [ $flip -eq 1 ]; then
+    echo Flipping volumes
+    # flip volumes
+    for dir in $outdir/ADNI/stx/1mm $outdir/ADNI/masks/1mm; do
+	cd $dir
+	for f in *.mnc; do	
+	    outname=${f%.mnc}
+	    if [ "$outname" = "${outname%flip}" ]; then
+		outname=${outname}_flip.mnc
+		if [ ! -f $outname ]; then
+		    flip_volume $f $outname
+		fi       
+	    fi
+	done
+	cd -
+    done
+fi
+
+echo Downsampling volumes
+for dir in $outdir/ADNI/stx/1mm $outdir/ADNI/masks/1mm; do
+    cd $dir
+    for i in *.mnc; do	
+	if [ ! -f ../2mm/$i ]; then minc_downsample --3dfactor 2 $i ../2mm/$i; fi
+	if [ ! -f ../4mm/$i ]; then minc_downsample --3dfactor 4 $i ../4mm/$i; fi
+    done
+    cd -
+done
+
+for i in 1 2 4; do
+    for f in `ls -1 $outdir/ADNI/stx/${i}mm/*.mnc`; do echo ADNI/stx/${i}mm/`basename $f`; done >> $outdir/library.stx.${i}mm
+    for f in `ls -1 $outdir/ADNI/masks/${i}mm/*.mnc`; do echo ADNI/masks/${i}mm/`basename $f`; done >> $outdir/library.masks.${i}mm
+    # library sanity check
+    for i in `cat $outdir/library.stx.${i}mm`; do if [ -f $outdir/$i ]; then echo $i; fi; done | sort -n | uniq > $tmp/stx
+    mv $tmp/stx $outdir/library.stx.${i}mm
+    for i in `cat $outdir/library.masks.${i}mm`; do if [ -f $outdir/$i ]; then echo $i; fi; done | sort -n | uniq > $tmp/masks
+    mv $tmp/masks $outdir/library.masks.${i}mm
+done
+
+echo Generating masks...
+cd $outdir
+mincmath -or `cat library.masks.1mm |xargs ` union_mask.mnc -clob
+mincmath -and `cat library.masks.1mm |xargs ` intersection_mask.mnc -clob
+minccalc -expr "if (A[0]) 0 else A[1]" intersection_mask.mnc union_mask.mnc margin_mask.mnc -clob
+
+rm -r $tmp
+
+echo Done
