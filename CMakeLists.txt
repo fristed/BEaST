@@ -19,7 +19,7 @@ IF(NOT MINC_TOOLKIT_BUILD)
   cmake_policy(SET CMP0003 OLD)
   endif(COMMAND cmake_policy)
   
-  FIND_PACKAGE( LIBMINC QUIET )
+  FIND_PACKAGE( LIBMINC )
   
   OPTION(USE_NIFTI      "Use niftiio library" ON)
   OPTION(USE_DMALLOC    "Use dmalloc library to debug memory leaks" OFF)

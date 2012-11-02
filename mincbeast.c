@@ -45,7 +45,7 @@ conditions; type 'cat COPYING' for details.\n\
 
 int main(int argc, char  *argv[] )
 {
-  char *input_file,*output_file,*libdir,*mask_file;
+  char *input_file,*output_file,*libdir;
   char imagelist[FILENAMELENGTH], masklist[FILENAMELENGTH],meanlist[FILENAMELENGTH],varlist[FILENAMELENGTH];
   char ***images, ***masks,***means,***vars;
   int num_images,i,sizes[3][5],tmpsizes[5],volumesize,*selection,steps=3,filled=0; 
@@ -53,8 +53,9 @@ int main(int argc, char  *argv[] )
   float *tempdata;
   int scale,scaledvolumesize,scales[3] = {1,2,4};
   int masksize=0,initialscale,targetscale,scalesteps;
-  beast_conf configuration[3];
+  beast_conf input_conf[3],configuration[3];
   image_metadata **meta;
+  int targetvoxelsize=1;
 
   BOOLEAN outputprob = FALSE;
   BOOLEAN flipimages = FALSE;
@@ -63,22 +64,25 @@ int main(int argc, char  *argv[] )
   BOOLEAN verbose = FALSE;
   BOOLEAN medianfilter = FALSE;
   BOOLEAN patchfilter = FALSE;
-  BOOLEAN relpath = FALSE;
+  BOOLEAN abspath = FALSE;
   BOOLEAN same_res = FALSE;
   BOOLEAN clobber  = FALSE;
-  
-  int sizepatch = 3;
-  int searcharea = 5;
-  double alpha = 0.2;
+  BOOLEAN nomask = FALSE;
+  BOOLEAN nopositive  = FALSE;
+
+  int voxelsize=4;  
+  int sizepatch = 1;
+  int searcharea = 2;
+  double alpha = 0.5;
   double beta = 0.25;
-  double threshold = 0.97;
+  double threshold = 0.95;
   int selectionsize = 20;
-  int voxelsize=4;
-  int targetvoxelsize=2;
+
   char *positive_file=NULL;
   char *selection_file=NULL;
   char *count_file=NULL;
   char *conf_file=NULL;
+  char *mask_file=NULL;
   
   char *default_beast_library=BEAST_LIBRARY_PREFIX;
   char *default_beast_mask=BEAST_LIBRARY_PREFIX"/margin_mask.mnc";
@@ -102,35 +106,41 @@ ArgvInfo argTable[] = {
   {"-verbose", ARGV_CONSTANT, (char *) TRUE, (char *) &verbose,
      "Enable verbose output."},
   {"-clobber", ARGV_CONSTANT, (char *) TRUE, (char *) &clobber,
-     "clobber output files"},
-  {"-relpath", ARGV_CONSTANT, (char *) TRUE, (char *) &relpath,
-     "File paths in the library are relative to library root."},
-  {"-selection_num", ARGV_INT, (char *) 1, (char *) &selectionsize,
-   "Specify number of selected images."},
+     "Clobber output files"},
+  {"-abspath", ARGV_CONSTANT, (char *) TRUE, (char *) &abspath,
+     "File paths in the library are absolute (default is relative to library root)."},
+
+  {"-voxel_size", ARGV_INT, (char *) 1, (char *) &voxelsize,
+   "Specify voxel size for calculations (4, 2, or 1). Assumes no multiscale. Use configuration file for multiscale."},
+  {"-patch_size", ARGV_INT, (char *) 1, (char *) &sizepatch,
+   "Specify patch size for single scale approach."},
+  {"-search_area", ARGV_INT, (char *) 1, (char *) &searcharea,
+   "Specify size of search area for single scale approach."},
   {"-alpha", ARGV_FLOAT, (char *) 1, (char *) &alpha,
    "Specify confidence level Alpha."},
   {"-beta", ARGV_FLOAT, (char *) 1, (char *) &beta,
    "Specify smoothness factor Beta."},
   {"-threshold", ARGV_FLOAT, (char *) 1, (char *) &threshold,
    "Specify threshold for patch selection."},
-  {"-patch_size", ARGV_INT, (char *) 1, (char *) &sizepatch,
-   "Specify patch size (used for all resolutions)."},
-  {"-search_area", ARGV_INT, (char *) 1, (char *) &searcharea,
-   "Specify size of search area for voxel size 4 (decreases by 1 for each higher resolution step)."},
-  {"-initvoxel_size", ARGV_INT, (char *) 1, (char *) &voxelsize,
-   "Specify initial voxel size (4, 2, or 1)."},
-  {"-finalvoxel_size", ARGV_INT, (char *) 1, (char *) &targetvoxelsize,
-   "Specify final voxel size (4, 2, or 1)."},
+  {"-selection_num", ARGV_INT, (char *) 1, (char *) &selectionsize,
+   "Specify number of selected images."},
+
   {"-positive", ARGV_STRING, (char *) 1, (char *) &positive_file,
-   "Specify mask of positive segmentation (inside mask)."},
+   "Specify mask of positive segmentation (inside mask) instead of the default mask."},
   {"-output_selection", ARGV_STRING, (char *) 1, (char *) &selection_file,
    "Specify file to output selected files."},
   {"-count", ARGV_STRING, (char *) 1, (char *) &count_file,
    "Specify file to output the patch count."},
   {"-configuration", ARGV_STRING, (char *) 1, (char *) &conf_file,
    "Specify configuration file."},
+  {"-mask", ARGV_STRING, (char *) 1, (char *) &mask_file,
+   "Specify a segmentation mask instead of the the default mask."},
   {"-same_resolution", ARGV_CONSTANT, (char *) TRUE, (char *) &same_res,
      "Output final mask with the same resolution as input file."},
+  {"-no_mask", ARGV_CONSTANT, (char *) TRUE, (char *) &nomask,
+     "Do not apply a segmentation mask. Perform the segmentation over the entire image."},
+  {"-no_positive", ARGV_CONSTANT, (char *) TRUE, (char *) &nopositive,
+     "Do not apply a positive mask."},
 
   {NULL, ARGV_END, NULL, NULL, NULL}
 };        
@@ -138,61 +148,59 @@ ArgvInfo argTable[] = {
  fprintf(stderr,"\nmincbeast --\t\tan implementation of BEaST (Brain Extraction\n\t\t\tusing non-local Segmentation Technique) version %s\n\n",PACKAGE_VERSION);
 
   /* Get arguments */
-  if (ParseArgv(&argc, argv, argTable, 0) || (argc < 3)) {
-    (void) fprintf(stderr,LICENSE);
-    (void) fprintf(stderr, 
-		   "\nUsage: %s [options] <library dir> <input> <mask> <output> or <input> <output> ( library dir = %s, mask=%s , positive_file=%s)\n",
-                    argv[0],default_beast_library,default_beast_mask,default_beast_positive_file);
-    (void) fprintf(stderr,"       %s -help\n\n", argv[0]);
+  if (ParseArgv(&argc, argv, argTable, 0) || (argc < 4)) {
+    fprintf(stderr,LICENSE);
+    fprintf(stderr, 
+		   "\nUsage: %s [options] <library dir> <input> <output>\n",
+                    argv[0]);
+    fprintf(stderr,"       %s -help\n\n", argv[0]);
     
     exit(STATUS_ERR);
   }
-  if(argc>3)
-  {
-    libdir = argv[argc-4];
-    input_file = argv[argc-3];
-    mask_file = argv[argc-2]; 
-    output_file = argv[argc-1];
-  } else {
-    libdir = default_beast_library;
+
+  /* if(argc>3) */
+  /* { */
+    libdir = argv[argc-3];
     input_file = argv[argc-2];
-    mask_file =  default_beast_mask; 
     output_file = argv[argc-1];
+  /* } else { */
+  /*   libdir = default_beast_library; */
+  /*   input_file = argv[argc-2]; */
+  /*   output_file = argv[argc-1]; */
     
-    positive_file=default_beast_positive_file;
-    //targetvoxelsize=4;
-    conf_file=default_beast_config;
-    medianfilter=TRUE;
-    relpath=TRUE;
-    fill_output=TRUE;
-    same_res=TRUE;
-    fprintf(stderr,"WARNING: Running mincbeast with default parameters:\n -median -relpath -configuration %s -positive %s -fill -same_resolution\n",conf_file,positive_file);
+  /*   positive_file=default_beast_positive_file; */
+  /*   conf_file=default_beast_config; */
+  /*   medianfilter=TRUE; */
+  /*   fill_output=TRUE; */
+  /*   same_res=TRUE; */
+  /*   fprintf(stderr,"WARNING: Running mincbeast with default parameters:\n -median -configuration %s -positive %s -fill -same_resolution\n",conf_file,positive_file); */
+  /* } */
+
+  if (mask_file==NULL){
+    mask_file=malloc((strlen(libdir)+20)*sizeof(*mask_file));
+    sprintf(mask_file,"%s/margin_mask.mnc",libdir);
+  }
+  if ((!nopositive) && (positive_file==NULL)){
+    positive_file=malloc((strlen(libdir)+30)*sizeof(*positive_file));
+    sprintf(positive_file,"%s/intersection_mask.mnc",libdir);
   }
 
   if(!clobber)
   {
      if(!access(output_file,F_OK))
      {
-       fprintf(stderr,"ERROR! File exitst: %s , run with -clobber\n",output_file);
+       fprintf(stderr,"ERROR! File exists: %s , run with -clobber\n",output_file);
        return STATUS_ERR;
      }
      if(count_file && !access(count_file,F_OK))
      {
-       fprintf(stderr,"ERROR! File exitst: %s , run with -clobber\n",count_file);
+       fprintf(stderr,"ERROR! File exists: %s , run with -clobber\n",count_file);
        return STATUS_ERR;
      }
   }
 
-  if (targetvoxelsize>voxelsize){
-    fprintf(stderr,"ERROR! Final voxel size must smaller or equal to initial voxel size\n");
-    return STATUS_ERR;
-  }
   if ((voxelsize>4) || (voxelsize<1) || (voxelsize==3)){
     fprintf(stderr,"ERROR! Initial voxel size must be either 4, 2, or 1\n");
-    return STATUS_ERR;
-  }
-  if ((targetvoxelsize>4) || (targetvoxelsize<1) || (targetvoxelsize==3)){
-    fprintf(stderr,"ERROR! Final voxel size must be either 4, 2, or 1\n");
     return STATUS_ERR;
   }
   
@@ -200,19 +208,6 @@ ArgvInfo argTable[] = {
 
   meta[0] = read_volume(input_file, &tempdata, sizes[0]);
   volumesize=sizes[0][0]*sizes[0][1]*sizes[0][2];
-
-  /* test if there is enough mem */
-  if (0){
-    if (flipimages)
-      imagedata = (float *)malloc(2*4*selectionsize*volumesize*sizeof(*imagedata));
-    else
-      imagedata = (float *)malloc(4*selectionsize*volumesize*sizeof(*imagedata));
-    if (imagedata==NULL){
-      fprintf(stderr,"FATAL: Not enough memory available! (need %d MB)\n",4*selectionsize*volumesize*(1+flipimages));
-      return STATUS_ERR;
-    }
-    free(imagedata);
-  }
   
   subject = alloc_2d_float(3,volumesize*sizeof(**subject));
   cp_volume(tempdata, subject[0], sizes[0]);
@@ -227,6 +222,11 @@ ArgvInfo argTable[] = {
   mask = alloc_2d_float(3,volumesize*sizeof(**mask));
   cp_volume(tempdata, mask[0], sizes[0]);
   free(tempdata);
+
+  if (nomask){
+    /* option for no segmentation mask - set the mask to all ones */
+    wipe_data(mask[0],sizes[0],1.0);
+  }
 
   if (positive_file!=NULL){
     read_volume(positive_file, &tempdata, tmpsizes);
@@ -250,32 +250,48 @@ ArgvInfo argTable[] = {
   down_sample(mask[0], mask[1], 2, sizes[0]);  
   down_sample(mask[0], mask[2], 4, sizes[0]);  
 
-  targetscale=(int)(targetvoxelsize/2);
-  initialscale=(int)(voxelsize/2);
+  /* populate the entire configuration table for compatibility reasons */
+  for (i=0;i<3;i++){
+    configuration[i].voxelsize = voxelsize;
+    configuration[i].patchsize = sizepatch;
+    configuration[i].searcharea = searcharea;
+    configuration[i].alpha = alpha;
+    configuration[i].beta = beta;
+    configuration[i].threshold = threshold;
+    configuration[i].selectionsize = selectionsize;
+  }
+
+
+  if (conf_file != NULL){
+    steps=read_configuration(conf_file, input_conf);
+    if (steps==STATUS_ERR){
+      fprintf(stderr,"Error in configuration file. Values outside limits.\n");
+      return STATUS_ERR;
+    }
+    initialscale=-1;
+    targetscale=4;
+    for (i=0;i<steps;i++){
+      scale=(int)(input_conf[i].voxelsize/2);
+      configuration[scale].voxelsize=input_conf[i].voxelsize;
+      configuration[scale].patchsize=input_conf[i].patchsize;
+      configuration[scale].searcharea=input_conf[i].searcharea;
+      configuration[scale].alpha=input_conf[i].alpha;
+      configuration[scale].beta=input_conf[i].beta;
+      configuration[scale].threshold=input_conf[i].threshold;
+      configuration[scale].selectionsize=input_conf[i].selectionsize;
+      if (scale>initialscale)
+	initialscale=scale;
+      if (scale<targetscale)
+	targetscale=scale;
+    }
+  }else{
+    /* if no configuration file, apply user settings for single scale */
+    targetscale=initialscale=(int)(voxelsize/2);            
+  }
+
   scalesteps=initialscale-targetscale+1;
 
   fprintf(stderr,"Scale steps: %d\n",scalesteps);
-
-  if (conf_file != NULL){
-    steps=read_configuration(conf_file, configuration);
-    for (i=0;i<3;i++){
-      if (configuration[i].voxelsize != MAX(i*2,1)){
-	fprintf(stderr,"Syntax error in configuration file!\n");
-	return STATUS_ERR;
-      }
-    }
-  }else{
-    for (i=initialscale;i>=targetscale;i--){
-      configuration[i].voxelsize = MAX(i*2,1);
-      configuration[i].patchsize = sizepatch;
-      configuration[i].searcharea = MAX(searcharea - i + targetscale,0);
-      configuration[i].alpha = alpha;
-      configuration[i].beta = beta;
-      configuration[i].threshold = threshold;
-      configuration[i].selectionsize = selectionsize;
-    }    
-    configuration[targetscale].alpha = 0.5;
-  }
 
   for (i=initialscale;i<=targetscale;i++){
     fprintf(stderr,"%d %d %d %4.2lf %4.2lf %4.2lf %d\n",configuration[i].voxelsize,configuration[i].patchsize,configuration[i].searcharea,configuration[i].alpha,configuration[i].beta,configuration[i].threshold,configuration[i].selectionsize);
@@ -295,8 +311,8 @@ ArgvInfo argTable[] = {
       sprintf(varlist,"%s/library.vars.%dmm",libdir,scales[scale]);
     }
 
-    num_images=read_list(imagelist,images[scale],relpath?libdir:"");
-    if (read_list(masklist,masks[scale],relpath?libdir:"")!=num_images){
+    num_images=read_list(imagelist,images[scale],abspath?"":libdir);
+    if (read_list(masklist,masks[scale],abspath?"":libdir)!=num_images){
       fprintf(stderr,"ERROR! Number of images and masks does not match!\n");
       return STATUS_ERR;
     }
@@ -307,11 +323,11 @@ ArgvInfo argTable[] = {
     }
     
     if (load_moments) {
-      if (read_list(meanlist,means[scale],relpath?libdir:"")!=num_images){
+      if (read_list(meanlist,means[scale],abspath?"":libdir)!=num_images){
 	fprintf(stderr,"ERROR! Number of images and means does not match!\n");
 	return STATUS_ERR;
       }
-      if (read_list(varlist,vars[scale],relpath?libdir:"")!=num_images){
+      if (read_list(varlist,vars[scale],abspath?"":libdir)!=num_images){
 	fprintf(stderr,"ERROR! Number of images and vars does not match!\n");
 	return STATUS_ERR;
       }
@@ -465,9 +481,11 @@ ArgvInfo argTable[] = {
   
   if(targetscale!=0 && same_res) /* need to upsample final output */
   {
+    if (verbose) fprintf(stderr,"Upsampling to input resolution, %dx%dx%d\n",sizes[0][0],sizes[0][1],sizes[0][2]);
     resize_trilinear(segsubject[targetscale], sizes[targetscale], sizes[0], segsubject[0]);
     masksize=update_mask(segsubject[0], mask[0], segmented[0], sizes[0], configuration[targetscale].alpha, 1.0-configuration[targetscale].alpha);
     targetscale=0;
+    configuration[targetscale].alpha = alpha;
   }
   
   if (!outputprob) {

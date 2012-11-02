@@ -663,9 +663,10 @@ int flood_fill_float(float *data, float *output, int *sizes, int sx, int sy, int
 
 
 int read_configuration(char *filename, beast_conf *conf){
-  int size=0;
+  int i,size=0;
   FILE *fd;
   char line[FILENAMELENGTH];
+  BOOLEAN issane=TRUE;
 
   fd=fopen(filename,"r");
 
@@ -685,8 +686,26 @@ int read_configuration(char *filename, beast_conf *conf){
 
   fclose(fd);
 
+  /* configuration sanity check */
+  for (i=0;i<size;i++){
+    if ((conf[i].voxelsize > VOXELSIZEMAX) || (conf[i].voxelsize < VOXELSIZEMIN))
+      issane = FALSE;
+    if ((conf[i].patchsize > PATCHSIZEMAX) || (conf[i].patchsize < PATCHSIZEMIN))
+      issane = FALSE;
+    if ((conf[i].searcharea > SEARCHAREAMAX) || (conf[i].searcharea < SEARCHAREAMIN))
+      issane = FALSE;
+    if ((conf[i].alpha > ALPHAMAX) || (conf[i].alpha < ALPHAMIN))
+      issane = FALSE;
+    if ((conf[i].beta > BETAMAX) || (conf[i].beta < BETAMIN))
+      issane = FALSE;
+    if ((conf[i].threshold > THRESHOLDMAX) || (conf[i].threshold < THRESHOLDMIN))
+      issane = FALSE;
+  }
 
-  return size;
+  if (issane)
+    return size;
+  else
+    return STATUS_ERR;
 }
 
 

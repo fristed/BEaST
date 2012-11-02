@@ -39,6 +39,19 @@
 #define MAXLIBSIZE 1000
 #define FILENAMELENGTH 255
 
+#define VOXELSIZEMAX 4
+#define VOXELSIZEMIN 1
+#define PATCHSIZEMAX 10
+#define PATCHSIZEMIN 0
+#define SEARCHAREAMAX 10
+#define SEARCHAREAMIN 0
+#define ALPHAMAX 1.0
+#define ALPHAMIN 0.0
+#define BETAMAX 5.0
+#define BETAMIN 0.0
+#define THRESHOLDMAX 1.0
+#define THRESHOLDMIN 0.0
+
 typedef struct {
   int index;
   float ssd;
