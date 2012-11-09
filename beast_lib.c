@@ -742,7 +742,7 @@ int pre_selection(float *subject, float *mask, char **images, int *sizes, int li
   volumesize=sizes[0]*sizes[1]*sizes[2];
   ssd = (ssd_t *)malloc(librarysize*sizeof(*ssd));
 
-  fprintf(stderr,"(%ld MB/subject)",volumesize*sizeof(*imagedata)/(1024*1024));
+  fprintf(stderr,"(%d MB/subject)",volumesize*sizeof(*imagedata)/(1024*1024));
 
   for (i=0;i<librarysize;i++){
     fprintf(stderr,".");
