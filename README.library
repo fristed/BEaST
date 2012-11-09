@@ -2,7 +2,7 @@ This explains how to download and install existing libraries for BEaST.
 
 0. Optionally install MINC Tool Kit as explained here:
 http://www.bic.mni.mcgill.ca/ServicesSoftware/ServicesSoftwareMincToolKit
-Step 2.4 below and the normalization script (beast_normalize.sh) depends on MINC tools.
+Step 2.4 below and the normalization script (beast_normalize) depends on MINC tools.
 
 1. Download and install ICBM BEaST library
 1.1 Download http://packages.bic.mni.mcgill.ca/tgz/beast-library-1.0.tar.gz
@@ -26,12 +26,12 @@ is here: http://www.duinsoft.nl/packages.php?t=en )
 $ source /opt/minc/minc-toolkit-config.sh
 
 2.4 Generate library by running:
-$ beast_preparelib.sh -flip <ADNI download directory> <BEaST library directory>
+$ beast_prepareADNIlib -flip <ADNI download directory> <BEaST library directory>
 Example:
-$ sudo beast_preparelib.sh -flip Downloads/ADNI /opt/minc/share/beast-library-1.0
+$ sudo beast_prepareADNIlib -flip Downloads/ADNI /opt/minc/share/beast-library-1.0
 
 3. Test the setup
 3.1 Normalize your data
-$ beast_normalize.sh -modeldir /opt/minc/share/icbm152_model_09c input.mnc normal.mnc normal.xfm
+$ beast_normalize -modeldir /opt/minc/share/icbm152_model_09c input.mnc normal.mnc normal.xfm
 3.2 Run BEaST
 $ mincbeast /opt/minc/share/beast-library-1.0 normal.mnc brainmask.mnc -conf /opt/minc/share/beast-library-1.0/default.2mm.conf -same_res
