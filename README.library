@@ -5,10 +5,10 @@ http://www.bic.mni.mcgill.ca/ServicesSoftware/ServicesSoftwareMincToolKit
 Step 2.4 below and the normalization script (beast_normalize) depends on MINC tools.
 
 1. Download and install ICBM BEaST library
-1.1 Download http://packages.bic.mni.mcgill.ca/tgz/beast-library-1.0.tar.gz
+1.1 Download the latest beast library here http://packages.bic.mni.mcgill.ca/tgz/
 1.2 Extract the archive and move it to somewhere convenient, e.g. /opt/minc/share
-$ tar zxf beast-library-1.0.tar.gz
-$ sudo mv beast-library-1.0 /opt/minc/share/
+$ tar zxf beast-library-1.1.tar.gz
+$ sudo mv beast-library-1.1 /opt/minc/share/
 
 2. Download and install ADNI BEaST library (optional)
 2.1 Login to the ADNI database at http://adni.loni.ucla.edu/
