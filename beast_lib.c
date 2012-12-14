@@ -783,7 +783,7 @@ image_metadata * read_volume(char *filename, float **data, int *sizes){
   #ifdef HAVE_MINC
     meta = read_minc(filename, data, sizes);
   #else
-    fprintf(stderr,"READ: unsupported file format\n");
+    fprintf(stderr,"READ: unsupported file format (%s)\n", filename);
     return NULL;
   #endif
 
@@ -792,7 +792,7 @@ image_metadata * read_volume(char *filename, float **data, int *sizes){
     /* assume nifti */
     meta = read_nifti(filename, data, sizes);
    #else 
-    fprintf(stderr,"READ: unsupported file format\n");
+    fprintf(stderr,"READ: unsupported file format (%s)\n", filename);
     return NULL;
    #endif
   }
@@ -819,7 +819,7 @@ int write_volume_generic(char *filename, float *data, image_metadata *meta,BOOLE
     #ifdef HAVE_MINC
     write_minc(filename, data, meta,binary_mask);
     #else
-    fprintf(stderr,"WRITE:Unsupported file format!\n");
+    fprintf(stderr,"WRITE:Unsupported file format (%s)!\n", filename);
     #endif 
     
   }else{
@@ -827,7 +827,7 @@ int write_volume_generic(char *filename, float *data, image_metadata *meta,BOOLE
     /* assume nifti */
     write_nifti_generic(filename, data, meta);/*TODO: can nifti write binary masks?*/
     #else
-    fprintf(stderr,"WRITE:Unsupported file format!\n");
+    fprintf(stderr,"WRITE:Unsupported file format (%s)!\n", filename);
     #endif 
   }
   
