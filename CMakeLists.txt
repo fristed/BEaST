@@ -94,7 +94,7 @@ IF(USE_NIFTI)
   LINK_LIBRARIES(niftiio znz z m)
   SET(BEAST_SRC ${BEAST_SRC} niftiio.c)
   LINK_DIRECTORIES(
-    "${NIFTI_ROOT}/lib"
+    "${NIFTI_ROOT}/lib${LIB_SUFFIX}"
   )
   INCLUDE_DIRECTORIES( 
     "${NIFTI_ROOT}/include/nifti"
