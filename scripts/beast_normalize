@@ -127,6 +127,7 @@ minccalc $tmp/nuc2.mnc $tmp/normal2.mnc -expfile $tmp/file2.exp -short -clob
 if [ $reg -eq 1 ]; then
     bestlinreg_s $tmp/normal2.mnc $template $tmp/lin2.xfm -source_mask $tmp/mask.mnc -target_mask $mask -clob
     mincresample -like $template -transform $tmp/lin2.xfm $tmp/normal2.mnc $output -sinc -clob
+    cp $tmp/lin2.xfm $tmp/lin1.xfm
 else
     cp $tmp/normal2.mnc $output
 
