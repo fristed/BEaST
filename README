@@ -3,6 +3,9 @@ mincbeast - implementation of BEaST
 This is a C implementation of BEaST (Brain Extraction using non-local
 Segmentation Technique).
 
+The latest BEaST source code can be found at:
+https://github.com/BIC-MNI/BEaST
+
 mincbeast works with MINC1 and MINC2 images. However, experimental
 support for the NIfTI format has been added. This has not yet been
 tested thoroughly.
@@ -23,10 +26,16 @@ make
 make install
 
 Troubleshooting:
-NIFTI_ROOT should be set to /usr if you installed NIfTI libraries
+- NIFTI_ROOT should be set to /usr if you installed NIfTI libraries
 using the package libnifti-dev
-If the compiler cannot find hdf5.h you probably need to install
-libhdf5-serial-dev
+- If the compiler cannot find hdf5.h you probably need to install
+  libhdf5-serial-dev
+- If you get the message: "Could not find module FindLIBMINC.cmake or
+  a configuration file for package LIBMINC.", you must point to the
+  directory containing either FindLIBMINC.cmake or
+  LIBMINCConfig.cmake. If you have installed MINC Tool Kit,
+  http://www.bic.mni.mcgill.ca/ServicesSoftware/ServicesSoftwareMincToolKit,
+  the directory is most likely /opt/minc/lib
 
 Library
 -------

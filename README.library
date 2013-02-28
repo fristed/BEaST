@@ -12,15 +12,16 @@ $ sudo mv beast-library-1.1 /opt/minc/share/
 
 2. Download and install ADNI BEaST library (optional)
 2.1 Login to the ADNI database at http://adni.loni.ucla.edu/
-2.2 Go to "New Advanced Search" and select "Pre-processed" under "Image
-Types" and "Image Processing" under "Search Section" in the left
-panel. Then write BEaST* in "Description" under "Image Processing" in
-the main panel and hit "Search". You should get 120 images, 60 T1s and
-60 masks, you can download. Select all and add to collection (name it
-e.g. "BEaST library"). In the Data Collections tab, download all the
-images in the collection as MINC. (Make sure you have a java plugin
-installed. Otherwise you cannot download. Instructions for Java setup
-is here: http://www.duinsoft.nl/packages.php?t=en )
+2.2 Go to "Advanced Image Search (beta)" and select "Pre-processed"
+under "Image Types" and "Image Processing" under "Search Section" in
+the left panel. Then write BEaST* in "Description" under "Image
+Processing" in the main panel and hit "Search". You should get 120
+images, 60 T1s and 60 masks, you can download. Select all and add to
+collection (name it e.g. "BEaST library"). In the Data Collections
+tab, download all the images in the collection as MINC. (Make sure you
+have a java plugin installed. Otherwise you cannot
+download. Instructions for Java setup is here:
+http://www.duinsoft.nl/packages.php?t=en )
 
 2.3 Source the minc-toolkit (if installed):
 $ source /opt/minc/minc-toolkit-config.sh
@@ -34,4 +35,4 @@ $ sudo beast_prepareADNIlib -flip Downloads/ADNI /opt/minc/share/beast-library-1
 3.1 Normalize your data
 $ beast_normalize -modeldir /opt/minc/share/icbm152_model_09c input.mnc normal.mnc normal.xfm
 3.2 Run BEaST
-$ mincbeast /opt/minc/share/beast-library-1.0 normal.mnc brainmask.mnc -conf /opt/minc/share/beast-library-1.0/default.2mm.conf -same_res
+$ mincbeast /opt/minc/share/beast-library-1.1 normal.mnc brainmask.mnc -conf /opt/minc/share/beast-library-1.1/default.2mm.conf -same_res
