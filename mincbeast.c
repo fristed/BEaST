@@ -292,9 +292,9 @@ ArgvInfo argTable[] = {
 
   scalesteps=initialscale-targetscale+1;
 
-  fprintf(stderr,"Scale steps: %d\n",scalesteps);
+  fprintf(stderr,"%d scale steps:\n",scalesteps);
 
-  for (i=initialscale;i<=targetscale;i++){
+  for (i=initialscale;i>=targetscale;i--){
     fprintf(stderr,"%d %d %d %4.2lf %4.2lf %4.2lf %d\n",configuration[i].voxelsize,configuration[i].patchsize,configuration[i].searcharea,configuration[i].alpha,configuration[i].beta,configuration[i].threshold,configuration[i].selectionsize);
   }
 
@@ -303,7 +303,7 @@ ArgvInfo argTable[] = {
   means = alloc_3d_char(3,MAXLIBSIZE, FILENAMELENGTH);
   vars = alloc_3d_char(3,MAXLIBSIZE, FILENAMELENGTH);
 
-  for (scale=2;scale>=0;scale--){
+  for (scale=initialscale;scale>=targetscale;scale--){
 
     sprintf(imagelist,"%s/library.stx.%dmm",libdir,scales[scale]);
     sprintf(masklist,"%s/library.masks.%dmm",libdir,scales[scale]);
