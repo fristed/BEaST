@@ -742,7 +742,7 @@ int pre_selection(float *subject, float *mask, char **images, int *sizes, int li
   volumesize=sizes[0]*sizes[1]*sizes[2];
   ssd = (ssd_t *)malloc(librarysize*sizeof(*ssd));
 
-  fprintf(stderr,"(%d MB/subject)",volumesize*sizeof(*imagedata)/(1024*1024));
+  fprintf(stderr,"(%ld MB/subject)",volumesize*sizeof(*imagedata)/(1024*1024));
 
   for (i=0;i<librarysize;i++){
     fprintf(stderr,".");
@@ -789,8 +789,12 @@ image_metadata * read_volume(char *filename, float **data, int *sizes){
 
   }else{
     #ifdef HAVE_NIFTI
-    /* assume nifti */
-    meta = read_nifti(filename, data, sizes);
+    if (!strcmp("nii",filename + strlen(filename)-3) || !strcmp("nii.gz",filename + strlen(filename)-6)){
+      meta = read_nifti(filename, data, sizes);
+    } else {
+      fprintf(stderr,"READ: unsupported file format (%s)\n", filename);
+      return NULL;
+    }
    #else 
     fprintf(stderr,"READ: unsupported file format (%s)\n", filename);
     return NULL;

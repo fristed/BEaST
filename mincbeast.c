@@ -208,13 +208,20 @@ ArgvInfo argTable[] = {
   meta = (image_metadata **)malloc(3*sizeof(image_metadata*));
 
   meta[0] = read_volume(input_file, &tempdata, sizes[0]);
+  if (meta[0] == NULL){
+    fprintf(stderr,"ERROR! Image not read: %s\n",input_file);
+    return STATUS_ERR;
+  }
   volumesize=sizes[0][0]*sizes[0][1]*sizes[0][2];
   
   subject = alloc_2d_float(3,volumesize*sizeof(**subject));
   cp_volume(tempdata, subject[0], sizes[0]);
   free(tempdata);
 
-  read_volume(mask_file, &tempdata, tmpsizes);
+  if (read_volume(mask_file, &tempdata, tmpsizes) == NULL){
+    fprintf(stderr,"ERROR! Image not read: %s\n",mask_file);
+    return STATUS_ERR;
+  }
 
   if ((tmpsizes[0]!=sizes[0][0]) || (tmpsizes[1]!=sizes[0][1]) || (tmpsizes[2]!=sizes[0][2])){
     fprintf(stderr,"ERROR! Mask dimension does not match image dimension!\n");
@@ -230,7 +237,10 @@ ArgvInfo argTable[] = {
   }
 
   if (positive_file!=NULL){
-    read_volume(positive_file, &tempdata, tmpsizes);
+    if (read_volume(positive_file, &tempdata, tmpsizes) == NULL){
+      fprintf(stderr,"ERROR! Image not read: %s\n",positive_file);
+      return STATUS_ERR;
+    }
     if ((tmpsizes[0]!=sizes[0][0]) || (tmpsizes[1]!=sizes[0][1]) || (tmpsizes[2]!=sizes[0][2])){
       fprintf(stderr,"ERROR! Positive mask dimension does not match image dimension!\n");
       return STATUS_ERR;
@@ -335,7 +345,10 @@ ArgvInfo argTable[] = {
     }
   }
   
-  read_volume(mask_file, &tempdata, tmpsizes);
+  if (read_volume(mask_file, &tempdata, tmpsizes) == NULL){
+    fprintf(stderr,"ERROR! Image not read: %s\n",mask_file);
+    return STATUS_ERR;
+  }
   if ((tmpsizes[0]!=sizes[0][0]) || (tmpsizes[1]!=sizes[0][1]) || (tmpsizes[2]!=sizes[0][2])){
     fprintf(stderr,"ERROR! Image dimension does not match library image dimension!\n");
     return STATUS_ERR;
@@ -343,9 +356,17 @@ ArgvInfo argTable[] = {
   free(tempdata);
 
   meta[1] = read_volume(images[1][0], &tempdata, sizes[1]);
+  if (meta[1] == NULL){
+    fprintf(stderr,"ERROR! Image not read: %s\n",images[1][0]);
+    return STATUS_ERR;
+  }
   free(tempdata);
 
   meta[2] = read_volume(images[2][0], &tempdata, sizes[2]);
+  if (meta[2] == NULL){
+    fprintf(stderr,"ERROR! Image not read: %s\n",images[2][0]);
+    return STATUS_ERR;
+  }
   free(tempdata);
 
   /* make the downsampled masks crisp */
@@ -375,14 +396,20 @@ ArgvInfo argTable[] = {
     /* read the libray images, masks, and moments */
     for (i=0;i<configuration[scale].selectionsize;i++){
       if (verbose) fprintf(stderr,".");
-      read_volume(images[scale][selection[i]], &tempdata, tmpsizes);     
+      if (read_volume(images[scale][selection[i]], &tempdata, tmpsizes) == NULL){
+	fprintf(stderr,"ERROR! Image not read: %s\n",images[scale][selection[i]]);
+	return STATUS_ERR;	
+      }
       cp_volume(tempdata, imagedata+i*scaledvolumesize, tmpsizes);
       free(tempdata);
     }
     if (verbose) fprintf(stderr,"*");    
     for (i=0;i<configuration[scale].selectionsize;i++){
       if (verbose) fprintf(stderr,".");
-      read_volume(masks[scale][selection[i]], &tempdata, tmpsizes);     
+      if (read_volume(masks[scale][selection[i]], &tempdata, tmpsizes) == NULL){
+	fprintf(stderr,"ERROR! Image not read: %s\n",masks[scale][selection[i]]);
+	return STATUS_ERR;
+      }
       cp_volume(tempdata, maskdata+i*scaledvolumesize, tmpsizes);
       free(tempdata);
     }
@@ -399,14 +426,20 @@ ArgvInfo argTable[] = {
     }else{
       for (i=0;i<configuration[scale].selectionsize;i++){
 	if (verbose) fprintf(stderr,".");
-	read_volume(means[scale][selection[i]], &tempdata, tmpsizes);     
+	if (read_volume(means[scale][selection[i]], &tempdata, tmpsizes) == NULL){
+	  fprintf(stderr,"ERROR! Image not read: %s\n",means[scale][selection[i]]);
+	  return STATUS_ERR;
+	}
 	cp_volume(tempdata, meandata+i*scaledvolumesize, tmpsizes);
 	free(tempdata);
       }
       if (verbose) fprintf(stderr,"*");    
       for (i=0;i<configuration[scale].selectionsize;i++){
 	fprintf(stderr,".");
-	read_volume(vars[scale][selection[i]], &tempdata, tmpsizes);     
+	if (read_volume(vars[scale][selection[i]], &tempdata, tmpsizes) == NULL){
+	  fprintf(stderr,"ERROR! Image not read: %s\n",masks[scale][selection[i]]);
+	  return STATUS_ERR;
+	}
 	cp_volume(tempdata, vardata+i*scaledvolumesize, tmpsizes);
 	free(tempdata);
       }

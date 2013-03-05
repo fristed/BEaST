@@ -80,8 +80,8 @@ output=${list[1]}
 xfm=${list[2]}
 
 if [ ! -d $modeldir ]; then
-    echo "Error!\tCannot find model directory."
-    echo "\tEnvironment variable MNI_DATAPATH is empty or -modeldir is not set"
+    echo -e "Error!\tCannot find model directory."
+    echo -e "\tEnvironment variable MNI_DATAPATH is empty or -modeldir is not set"
     echo -e "Usage: `basename $0` $usage_string\nOptions:\n$options_string"
     exit
 fi

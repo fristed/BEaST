@@ -88,8 +88,13 @@ mincbeast [options] <library dir> <input> <output>
 
 Example
 -------
+
+Suppose your library resides in ~/beast/ and your normalized input
+image is named t1w.mnc, this command will provide a segmentation at
+1mm resolution:
+
 mincbeast ~/beast/ t1w.mnc output.mnc -conf \\
-~/beast/conf/default.1mm.conf -fill -median
+~/beast/default.1mm.conf -fill -median
 
 Explanation of options
 ----------------------
