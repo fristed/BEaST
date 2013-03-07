@@ -806,6 +806,8 @@ image_metadata * read_volume(char *filename, float **data, int *sizes){
   fprintf(stderr,"READ: Start coordinates: %f, %f, %f\n",meta->start[0],meta->start[1],meta->start[2]);
   fprintf(stderr,"READ: Step values: %f, %f, %f\n",meta->step[0],meta->step[1],meta->step[2]);
 #endif
+  
+  meta->history = NULL;
 
   return meta;
 }

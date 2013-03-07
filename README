@@ -86,15 +86,21 @@ mincbeast [options] <library dir> <input> <output>
 <output>: output segmentation
 
 
-Example
--------
-
+Examples
+--------
 Suppose your library resides in ~/beast/ and your normalized input
 image is named t1w.mnc, this command will provide a segmentation at
 1mm resolution:
 
 mincbeast ~/beast/ t1w.mnc output.mnc -conf \\
 ~/beast/default.1mm.conf -fill -median
+
+For faster, almost as accurate results, one may want to use the 2mm
+configuration file:
+
+mincbeast ~/beast/ t1w.mnc output.mnc -conf \\
+~/beast/default.2mm.conf -fill -median -same_res
+
 
 Explanation of options
 ----------------------
@@ -135,6 +141,85 @@ Explanation of options
  -no_positive:      Do not apply a positive mask.
 
 
+Tuning the parameters
+---------------------
+The main parameters are those in the configuration files. You should
+always set them in the configuration file instead of at the command
+line. For example, the configuration file (default.2mm.conf) looks
+like this:
+
+# voxelsize patchsize searcharea alpha beta threshold num_selected
+2 1 4 0.5 0.25 0.95 20
+4 1 2 0.2 0.25 0.95 20
+
+Each line represent a scale step. Here there are two steps, 4mm and
+2mm. The default.1mm.conf file contains one more line for the 1mm
+scale step. BEaST only supports these three different scales, so you
+cannot add e.g. 8mm or 0.5mm.
+
+The header shows the parameter names. "voxelsize" is on of 1, 2, or 4
+indicating the scale step. BEaST always starts with the largest
+voxelsize and propagates the segmentation to the next scale. The
+propagation is controlled by "alpha", which determine how much
+information is propagated. Here alpha is 0.2 for the 4mm scale, which
+means that probabilities in the range 0.2 - 0.8 are propagated, while
+<0.2 are considered background and >0.8 are considered foreground
+(object). If you increase "alpha", you trust your lowres segmentation
+more and propagate less to the next scale. For the final scale "alpha"
+is usually 0.5, because this is the threshold for the final
+segmentation. You can adjust this final threshold to control
+consistent over/under-segmentation.
+
+"patchsize" is the size of the patch when comparing structures across
+the library. 1 means a patch size of 3x3x3, 2 means a patch size of
+5x5x5, and so on. Increasing this may give better results, but also
+seriously increases the computational time.
+
+"searcharea" is the size of the spatial neighborhood in which to look
+for similar patches. This is similar to the "patchsize" in that e.g.
+2 ~ 5x5x5 and 4 ~ 9x9x9.
+
+"beta" is a smoothness parameter. Usually in the range 0-1. Larger
+beta means more smooth.
+
+"threshold" is a parameter controlling the preselection of
+patches. Preselection makes sure to only include patches that have
+some similarity. The range is 0-1. The higher the more strict (fewer
+patches selected).
+
+"num_selected" is the number of images to select from the library when
+looking for similar structures. Usually the higher the
+better. However, the improvement is asymptotic and the memory usage
+quickly rises with larger N.
+
+For the command line options, the important ones are:
+
+-same_res which simply makes sure that the output has the same
+ resolution as the input no matter the configuration file.
+
+-median applies a median filter on the probability map before
+ propagation. This also smoothes the result and should be used when
+ the library is not perfect (i.e. from another population than the
+ image to segment).
+
+-fill can always be used as this just morphologically fills any holes
+ in the segmentation.
+
+The remaining command line options are not really relevant for
+tuning. However, you may want to output the probability map (using
+-probability) when determining the best "alpha".
+
+Populating the library
+----------------------
+The best way to improve your results is to populate the library with
+images/masks from the same scanner as the the images you are trying to
+segment. One way to do this is to run BEaST with the default ICBM/ADNI
+images and then select the best masks among the results, possibly
+perform some manual corrections, and put them into the library. Then
+run BEaST again. This bootstrapping method can be performed
+iteratively with increasing performance improvements.
+
+For more on populating the library, please see README.library
 
 Reference
 ---------

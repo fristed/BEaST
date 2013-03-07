@@ -36,3 +36,42 @@ $ sudo beast_prepareADNIlib -flip Downloads/ADNI /opt/minc/share/beast-library-1
 $ beast_normalize -modeldir /opt/minc/share/icbm152_model_09c input.mnc normal.mnc normal.xfm
 3.2 Run BEaST
 $ mincbeast /opt/minc/share/beast-library-1.1 normal.mnc brainmask.mnc -conf /opt/minc/share/beast-library-1.1/default.2mm.conf -same_res
+
+
+Tailoring your own library
+--------------------------
+The best way to improve your results is to populate the library with
+images/masks from the same scanner as the the images you are trying to
+segment. One way to do this is to run BEaST with the default ICBM/ADNI
+images and then select the best masks among the results, possibly
+perform some manual corrections, and put them into the library. Then
+run BEaST again. This bootstrapping method can be performed
+iteratively with increasing performance improvements.
+
+To add your own images/masks you must downsample the images/masks to
+2mm and 4mm voxel sizes. This can be done using minc_downsample from
+the MINC Tool Kit package. For example:
+
+$ minc_downsample --3dfactor 2 T1_1mm.mnc T1_2mm.mnc
+$ minc_downsample --3dfactor 4 T1_1mm.mnc T1_4mm.mnc
+
+You may also want to L/R flip the images to increase your N. This can
+be done using flip_volume. For example:
+
+$ flip_volume T1_1mm.mnc T1_1mm_flip.mnc
+
+Finally, you need to update the library files to include your new images/masks. The files to update are:
+
+library.masks.1mm
+library.masks.2mm
+library.masks.4mm
+library.stx.1mm
+library.stx.2mm
+library.stx.4mm
+
+Note that unless you always use -abspath when running mincbeast, the
+paths in these files are relative to the BEaST library path. Other
+than that there are no restrictions on file naming and
+placement. BEaST assumes the same order of images/masks across the
+library files, so pay special attention to the order of the file
+names.

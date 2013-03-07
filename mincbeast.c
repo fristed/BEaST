@@ -46,7 +46,7 @@ conditions; type 'cat COPYING' for details.\n\
 
 int main(int argc, char  *argv[] )
 {
-  char *input_file,*output_file,*libdir;
+  char *input_file,*output_file,*libdir, history_label[1024];
   char imagelist[FILENAMELENGTH], masklist[FILENAMELENGTH],meanlist[FILENAMELENGTH],varlist[FILENAMELENGTH];
   char ***images, ***masks,***means,***vars;
   int num_images,i,sizes[3][5],tmpsizes[5],volumesize,*selection,steps=3,filled=0; 
@@ -147,6 +147,10 @@ ArgvInfo argTable[] = {
 };        
 
  fprintf(stderr,"\nmincbeast --\t\tan implementation of BEaST (Brain Extraction\n\t\t\tusing non-local Segmentation Technique) version %s\n\n",PACKAGE_VERSION);
+
+ sprintf(history_label,"%s",argv[0]);
+ for (i=1;i<argc;i++)
+   sprintf(history_label,"%s %s",history_label,argv[i]);
 
   /* Get arguments */
   if (ParseArgv(&argc, argv, argTable, 0) || (argc < 4)) {
@@ -313,7 +317,8 @@ ArgvInfo argTable[] = {
   means = alloc_3d_char(3,MAXLIBSIZE, FILENAMELENGTH);
   vars = alloc_3d_char(3,MAXLIBSIZE, FILENAMELENGTH);
 
-  for (scale=initialscale;scale>=targetscale;scale--){
+  //for (scale=initialscale;scale>=targetscale;scale--){
+  for (scale=2;scale>=0;scale--){
 
     sprintf(imagelist,"%s/library.stx.%dmm",libdir,scales[scale]);
     sprintf(masklist,"%s/library.masks.%dmm",libdir,scales[scale]);
@@ -509,6 +514,7 @@ ArgvInfo argTable[] = {
     free(selection);
   } // for each scale
   
+
   if (count_file!=NULL) {
     write_volume_generic(count_file, patchcount[targetscale], meta[targetscale],FALSE);
   }
@@ -533,7 +539,9 @@ ArgvInfo argTable[] = {
       segsubject[targetscale]=mask[targetscale];
     }
   }
-  
+
+  meta[targetscale]->history=malloc(strlen(history_label)*sizeof(char));
+  sprintf(meta[targetscale]->history,"%s",history_label);
   write_volume_generic(output_file, segsubject[targetscale], meta[targetscale],!outputprob);
 
 

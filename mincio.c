@@ -114,11 +114,11 @@ int write_minc(char *filename, float *image, image_metadata *meta,BOOLEAN binary
   alloc_volume_data(volume);
     
   get_volume(image, volume, meta->length);
-    
+
   if(!binary_mask)
-    output_volume( filename, NC_FLOAT,FALSE,min, max,volume,NULL,(minc_output_options *)NULL);
+    output_volume( filename, NC_FLOAT,FALSE,min, max,volume,meta->history,(minc_output_options *)NULL);
   else
-    output_volume( filename, NC_BYTE,FALSE,0, 1.0,volume,NULL,(minc_output_options *)NULL);
+    output_volume( filename, NC_BYTE,FALSE,0, 1.0,volume,meta->history,(minc_output_options *)NULL);
     
   delete_volume(volume);
 
