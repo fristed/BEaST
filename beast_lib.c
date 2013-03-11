@@ -286,7 +286,7 @@ int cmp_ssd(const void *vp, const void *vq){
 }
 
 
-inline float get_ssd(float *I1, float *I2, float *mask, int *sizes){
+static inline  float get_ssd(float *I1, float *I2, float *mask, int *sizes){
   int j,k,l,index,count=0;
   float ssd=0;
 
