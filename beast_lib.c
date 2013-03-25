@@ -666,7 +666,7 @@ int read_configuration(char *filename, beast_conf *conf){
   int i,size=0;
   FILE *fd;
   char line[FILENAMELENGTH];
-  BOOLEAN issane=TRUE;
+  VIO_BOOL issane=TRUE;
 
   fd=fopen(filename,"r");
 
@@ -730,7 +730,7 @@ int read_list(char *filename, char **list,char *basedir) {
 }
 
 
-int pre_selection(float *subject, float *mask, char **images, int *sizes, int librarysize, int num_selected, int *selection, char *outfile, BOOLEAN verbose){
+int pre_selection(float *subject, float *mask, char **images, int *sizes, int librarysize, int num_selected, int *selection, char *outfile, VIO_BOOL verbose){
   int i;
   int volumesize;
   float *imagedata;
@@ -812,7 +812,7 @@ image_metadata * read_volume(char *filename, float **data, int *sizes){
   return meta;
 }
 
-int write_volume_generic(char *filename, float *data, image_metadata *meta,BOOLEAN binary_mask){
+int write_volume_generic(char *filename, float *data, image_metadata *meta,VIO_BOOL binary_mask){
 
 #ifdef DEBUG
   fprintf(stderr,"WRITE: Dimension sizes: %d, %d, %d\n",meta->length[0],meta->length[1],meta->length[2]);

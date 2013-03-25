@@ -96,8 +96,8 @@
 #define ROUND( x ) ((long) ((x) + ( ((x) >= 0) ? 0.5 : (-0.5) ) ))
 
 #ifndef DEF_VOLUME_IO
-typedef int BOOLEAN;
-typedef double Real;
+typedef int VIO_BOOL;
+typedef double VIO_Real;
 #endif
 
 #ifndef _NETCDF_

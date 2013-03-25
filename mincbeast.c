@@ -58,18 +58,18 @@ int main(int argc, char  *argv[] )
   image_metadata **meta;
   int targetvoxelsize=1;
 
-  BOOLEAN outputprob = FALSE;
-  BOOLEAN flipimages = FALSE;
-  BOOLEAN load_moments = FALSE;
-  BOOLEAN fill_output = FALSE;
-  BOOLEAN verbose = FALSE;
-  BOOLEAN medianfilter = FALSE;
-  BOOLEAN patchfilter = FALSE;
-  BOOLEAN abspath = FALSE;
-  BOOLEAN same_res = FALSE;
-  BOOLEAN clobber  = FALSE;
-  BOOLEAN nomask = FALSE;
-  BOOLEAN nopositive  = FALSE;
+  VIO_BOOL outputprob = FALSE;
+  VIO_BOOL flipimages = FALSE;
+  VIO_BOOL load_moments = FALSE;
+  VIO_BOOL fill_output = FALSE;
+  VIO_BOOL verbose = FALSE;
+  VIO_BOOL medianfilter = FALSE;
+  VIO_BOOL patchfilter = FALSE;
+  VIO_BOOL abspath = FALSE;
+  VIO_BOOL same_res = FALSE;
+  VIO_BOOL clobber  = FALSE;
+  VIO_BOOL nomask = FALSE;
+  VIO_BOOL nopositive  = FALSE;
 
   int voxelsize=4;  
   int sizepatch = 1;
