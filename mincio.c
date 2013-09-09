@@ -85,6 +85,9 @@ int write_minc(char *filename, float *image, image_metadata *meta,VIO_BOOL binar
   else 
     volume = create_volume(3,NULL,NC_FLOAT,FALSE,FLT_MIN,FLT_MAX);
   
+  if(!volume)
+    return STATUS_ERR;
+  
   if(!binary_mask)
   {
     for (i=0;i<meta->length[0];i++){
@@ -122,7 +125,7 @@ int write_minc(char *filename, float *image, image_metadata *meta,VIO_BOOL binar
     
   delete_volume(volume);
 
-  return 0;
+  return STATUS_OK;
 }
 
 image_metadata * read_minc(char *filename, float **image, int *sizes){

@@ -807,7 +807,8 @@ image_metadata * read_volume(char *filename, float **data, int *sizes){
   fprintf(stderr,"READ: Step values: %f, %f, %f\n",meta->step[0],meta->step[1],meta->step[2]);
 #endif
   
-  meta->history = NULL;
+  if(meta)
+    meta->history = NULL;
 
   return meta;
 }
@@ -823,7 +824,11 @@ int write_volume_generic(char *filename, float *data, image_metadata *meta,VIO_B
   /* if minc format */
   if (!strcmp("mnc",filename + strlen(filename)-3)){
     #ifdef HAVE_MINC
-    write_minc(filename, data, meta,binary_mask);
+    if(write_minc(filename, data, meta,binary_mask))
+    {
+      fprintf(stderr,"WRITE:Error writing file (%s)!\n", filename);
+      return STATUS_ERR;
+    }
     #else
     fprintf(stderr,"WRITE:Unsupported file format (%s)!\n", filename);
     #endif 
