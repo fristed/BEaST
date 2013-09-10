@@ -736,6 +736,7 @@ int pre_selection(float *subject, float *mask, char **images, int *sizes, int li
   float *imagedata;
   ssd_t *ssd;
   FILE *fd;
+  image_metadata *_meta;
 
   fprintf(stderr,"Performing pre-selection ");
 
@@ -747,11 +748,12 @@ int pre_selection(float *subject, float *mask, char **images, int *sizes, int li
   for (i=0;i<librarysize;i++){
     fprintf(stderr,".");
 
-    read_volume(images[i], &imagedata, sizes);     
+    _meta=read_volume(images[i], &imagedata, sizes);     
 
     ssd[i].index=i;
     ssd[i].ssd=get_ssd(subject,imagedata,mask,sizes);
     free(imagedata);
+    free_meta(_meta);
   }
 
   qsort(ssd,librarysize,sizeof(ssd_t),cmp_ssd);
@@ -771,7 +773,7 @@ int pre_selection(float *subject, float *mask, char **images, int *sizes, int li
 
   if (outfile!=NULL)
     fclose(fd);
-
+  free(ssd);
   return STATUS_OK;
 }
 

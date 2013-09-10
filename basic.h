@@ -138,9 +138,12 @@ typedef struct {
 typedef struct {
   float *start;
   float *step;
-  int *length;
-  char *history;
+  int   *length;
+  char  *history;
 } image_metadata;
+
+
+
 
 #define FALSE 0
 #define TRUE 1

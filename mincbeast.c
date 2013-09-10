@@ -51,12 +51,15 @@ int main(int argc, char  *argv[] )
   char imagelist[FILENAMELENGTH], masklist[FILENAMELENGTH],meanlist[FILENAMELENGTH],varlist[FILENAMELENGTH];
   char ***images, ***masks,***means,***vars;
   int num_images,i,sizes[3][5],tmpsizes[5],volumesize,*selection,steps=3,filled=0;
-  float *imagedata,*maskdata,*meandata,*vardata,**subject,**mask,**positivemask=NULL,**segsubject,**patchcount,**filtered,max,min,**segmented;
+  float *imagedata,*maskdata,*meandata,*vardata,**subject,**mask,**positivemask=NULL,**segsubject,**patchcount,**filtered;
+  float max,min;
+  float **segmented;
   float *tempdata;
   int scale,scaledvolumesize,scales[3] = {1,2,4};
   int masksize=0,initialscale,targetscale,scalesteps;
   beast_conf input_conf[3],configuration[3];
   image_metadata **meta;
+  image_metadata *mask_meta;
   int targetvoxelsize=1;
 
   VIO_BOOL outputprob = FALSE;
@@ -195,7 +198,7 @@ int main(int argc, char  *argv[] )
 
     {NULL, ARGV_END, NULL, NULL, NULL}
   };
-
+  
   fprintf(stderr,"\nmincbeast --\t\tan implementation of BEaST (Brain Extraction\n\t\t\tusing non-local Segmentation Technique) version %s\n\n",PACKAGE_VERSION);
 
   /* Get the time, overwriting newline */
@@ -292,7 +295,8 @@ int main(int argc, char  *argv[] )
   }
 
   if (positive_file!=NULL) {
-    if (read_volume(positive_file, &tempdata, tmpsizes) == NULL) {
+    image_metadata *positive_meta;
+    if ((positive_meta=read_volume(positive_file, &tempdata, tmpsizes)) == NULL) {
       fprintf(stderr,"ERROR! Image not read: %s\n",positive_file);
       return STATUS_ERR;
     }
@@ -303,6 +307,7 @@ int main(int argc, char  *argv[] )
     positivemask = alloc_2d_float(3,volumesize*sizeof(**mask));
     cp_volume(tempdata, positivemask[0], sizes[0]);
     free(tempdata);
+    free_meta(positive_meta);
 
     down_sample(positivemask[0], positivemask[1], 2, sizes[0]);
     down_sample(positivemask[0], positivemask[2], 4, sizes[0]);
@@ -400,7 +405,7 @@ int main(int argc, char  *argv[] )
     }
   }
 
-  if (read_volume(mask_file, &tempdata, tmpsizes) == NULL) {
+  if ((mask_meta=read_volume(mask_file, &tempdata, tmpsizes)) == NULL) {
     fprintf(stderr,"ERROR! Image not read: %s\n",mask_file);
     return STATUS_ERR;
   }
@@ -409,6 +414,7 @@ int main(int argc, char  *argv[] )
     return STATUS_ERR;
   }
   free(tempdata);
+  free_meta(mask_meta);
 
   meta[1] = read_volume(images[1][0], &tempdata, sizes[1]);
   if (meta[1] == NULL) {
@@ -430,7 +436,7 @@ int main(int argc, char  *argv[] )
 
   segsubject = alloc_2d_float(3,volumesize*sizeof(**segsubject));
   patchcount = alloc_2d_float(3,volumesize*sizeof(**patchcount));
-  filtered = alloc_2d_float(3,volumesize*sizeof(**filtered));
+  filtered   = alloc_2d_float(3,volumesize*sizeof(**filtered));
 
   if (verbose) fprintf(stderr,"Initial voxel size: %d\nTarget voxel size: %d\n",scales[initialscale],scales[targetscale]);
 
@@ -450,23 +456,27 @@ int main(int argc, char  *argv[] )
 
     /* read the library images, masks, and moments */
     for (i=0; i<configuration[scale].selectionsize; i++) {
+      image_metadata *_meta;
       if (verbose) fprintf(stderr,".");
-      if (read_volume(images[scale][selection[i]], &tempdata, tmpsizes) == NULL) {
+      if ((_meta=read_volume(images[scale][selection[i]], &tempdata, tmpsizes)) == NULL) {
         fprintf(stderr,"ERROR! Image not read: %s\n",images[scale][selection[i]]);
         return STATUS_ERR;
       }
       cp_volume(tempdata, imagedata+i*scaledvolumesize, tmpsizes);
       free(tempdata);
+      free_meta(_meta);
     }
     if (verbose) fprintf(stderr,"*");
     for (i=0; i<configuration[scale].selectionsize; i++) {
+      image_metadata *_meta;
       if (verbose) fprintf(stderr,".");
-      if (read_volume(masks[scale][selection[i]], &tempdata, tmpsizes) == NULL) {
+      if ((_meta=read_volume(masks[scale][selection[i]], &tempdata, tmpsizes)) == NULL) {
         fprintf(stderr,"ERROR! Image not read: %s\n",masks[scale][selection[i]]);
         return STATUS_ERR;
       }
       cp_volume(tempdata, maskdata+i*scaledvolumesize, tmpsizes);
       free(tempdata);
+      free_meta(_meta);
     }
     if (verbose) fprintf(stderr,"*");
 
@@ -480,23 +490,27 @@ int main(int argc, char  *argv[] )
       }
     } else {
       for (i=0; i<configuration[scale].selectionsize; i++) {
+        image_metadata *_meta;
         if (verbose) fprintf(stderr,".");
-        if (read_volume(means[scale][selection[i]], &tempdata, tmpsizes) == NULL) {
+        if ((_meta=read_volume(means[scale][selection[i]], &tempdata, tmpsizes)) == NULL) {
           fprintf(stderr,"ERROR! Image not read: %s\n",means[scale][selection[i]]);
           return STATUS_ERR;
         }
         cp_volume(tempdata, meandata+i*scaledvolumesize, tmpsizes);
         free(tempdata);
+        free_meta(_meta);
       }
       if (verbose) fprintf(stderr,"*");
       for (i=0; i<configuration[scale].selectionsize; i++) {
+        image_metadata *_meta;
         fprintf(stderr,".");
-        if (read_volume(vars[scale][selection[i]], &tempdata, tmpsizes) == NULL) {
+        if ((_meta=read_volume(vars[scale][selection[i]], &tempdata, tmpsizes)) == NULL) {
           fprintf(stderr,"ERROR! Image not read: %s\n",masks[scale][selection[i]]);
           return STATUS_ERR;
         }
         cp_volume(tempdata, vardata+i*scaledvolumesize, tmpsizes);
         free(tempdata);
+        free_meta(_meta);
       }
     }
     if (verbose) fprintf(stderr,"\n");
@@ -585,7 +599,8 @@ int main(int argc, char  *argv[] )
     if (fill_output) {
       wipe_data(mask[targetscale], sizes[targetscale], 1.0);
       filled = flood_fill_float(segsubject[targetscale], mask[targetscale], sizes[targetscale], 0, 0, 0, 0, 6);
-      segsubject[targetscale]=mask[targetscale];
+      //segsubject[targetscale]=mask[targetscale];
+      cp_volume(mask[targetscale],segsubject[targetscale],sizes[targetscale]);
     }
   }
 
@@ -595,10 +610,12 @@ int main(int argc, char  *argv[] )
     return STATUS_ERR;
   }
 
-
+  free_2d_float(mask);
   free_2d_float(subject);
   if (positive_file!=NULL)
     free_2d_float(positivemask);
+  
+  free_2d_float(filtered);
   free_2d_float(segmented);
   free_2d_float(segsubject);
   free_2d_float(patchcount);
@@ -607,6 +624,11 @@ int main(int argc, char  *argv[] )
   free_3d_char(masks);
   free_3d_char(means);
   free_3d_char(vars);
+  
+  free_meta(meta[2]);
+  free_meta(meta[1]);
+  
+  free(meta);
 
   return STATUS_OK;
 }

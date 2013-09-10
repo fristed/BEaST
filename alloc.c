@@ -347,3 +347,17 @@ void free_4d(int ****ptr){
   free(ptr);
 
 }
+
+
+void free_meta(image_metadata* meta)
+{
+  if(meta)
+  {
+    if(meta->history) free(meta->history);
+    if(meta->start)   free(meta->start);
+    if(meta->step)    free(meta->step);
+    if(meta->length)  free(meta->length);
+    
+    free(meta);
+  }
+}
