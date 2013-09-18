@@ -29,7 +29,7 @@ $ source /opt/minc/minc-toolkit-config.sh
 2.4 Generate library by running:
 $ beast_prepareADNIlib -flip <ADNI download directory> <BEaST library directory>
 Example:
-$ sudo beast_prepareADNIlib -flip Downloads/ADNI /opt/minc/share/beast-library-1.0
+$ sudo beast_prepareADNIlib -flip Downloads/ADNI /opt/minc/share/beast-library-1.1
 
 3. Test the setup
 3.1 Normalize your data

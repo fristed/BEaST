@@ -765,7 +765,7 @@ int pre_selection(float *subject, float *mask, char **images, int *sizes, int li
 
   for (i=0;i<num_selected;i++){   
     selection[i] = ssd[i].index;
-    if ((verbose) || (outfile!=NULL))  fprintf(fd,"%s\n",images[selection[i]]);
+    if ((verbose) || (outfile!=NULL))  fprintf(fd,"%s %f\n",images[selection[i]],ssd[i].ssd);
   }
   
 
