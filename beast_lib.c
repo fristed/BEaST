@@ -286,7 +286,7 @@ int cmp_ssd(const void *vp, const void *vq){
 }
 
 
-inline float get_ssd(float *I1, float *I2, float *mask, int *sizes){
+static inline  float get_ssd(float *I1, float *I2, float *mask, int *sizes){
   int j,k,l,index,count=0;
   float ssd=0;
 
@@ -666,7 +666,7 @@ int read_configuration(char *filename, beast_conf *conf){
   int i,size=0;
   FILE *fd;
   char line[FILENAMELENGTH];
-  BOOLEAN issane=TRUE;
+  VIO_BOOL issane=TRUE;
 
   fd=fopen(filename,"r");
 
@@ -730,12 +730,13 @@ int read_list(char *filename, char **list,char *basedir) {
 }
 
 
-int pre_selection(float *subject, float *mask, char **images, int *sizes, int librarysize, int num_selected, int *selection, char *outfile, BOOLEAN verbose){
+int pre_selection(float *subject, float *mask, char **images, int *sizes, int librarysize, int num_selected, int *selection, char *outfile, VIO_BOOL verbose){
   int i;
   int volumesize;
   float *imagedata;
   ssd_t *ssd;
   FILE *fd;
+  image_metadata *_meta;
 
   fprintf(stderr,"Performing pre-selection ");
 
@@ -747,11 +748,12 @@ int pre_selection(float *subject, float *mask, char **images, int *sizes, int li
   for (i=0;i<librarysize;i++){
     fprintf(stderr,".");
 
-    read_volume(images[i], &imagedata, sizes);     
+    _meta=read_volume(images[i], &imagedata, sizes);     
 
     ssd[i].index=i;
     ssd[i].ssd=get_ssd(subject,imagedata,mask,sizes);
     free(imagedata);
+    free_meta(_meta);
   }
 
   qsort(ssd,librarysize,sizeof(ssd_t),cmp_ssd);
@@ -771,7 +773,7 @@ int pre_selection(float *subject, float *mask, char **images, int *sizes, int li
 
   if (outfile!=NULL)
     fclose(fd);
-
+  free(ssd);
   return STATUS_OK;
 }
 
@@ -807,12 +809,13 @@ image_metadata * read_volume(char *filename, float **data, int *sizes){
   fprintf(stderr,"READ: Step values: %f, %f, %f\n",meta->step[0],meta->step[1],meta->step[2]);
 #endif
   
-  meta->history = NULL;
+  if(meta)
+    meta->history = NULL;
 
   return meta;
 }
 
-int write_volume_generic(char *filename, float *data, image_metadata *meta,BOOLEAN binary_mask){
+int write_volume_generic(char *filename, float *data, image_metadata *meta,VIO_BOOL binary_mask){
 
 #ifdef DEBUG
   fprintf(stderr,"WRITE: Dimension sizes: %d, %d, %d\n",meta->length[0],meta->length[1],meta->length[2]);
@@ -823,7 +826,11 @@ int write_volume_generic(char *filename, float *data, image_metadata *meta,BOOLE
   /* if minc format */
   if (!strcmp("mnc",filename + strlen(filename)-3)){
     #ifdef HAVE_MINC
-    write_minc(filename, data, meta,binary_mask);
+    if(write_minc(filename, data, meta,binary_mask))
+    {
+      fprintf(stderr,"WRITE:Error writing file (%s)!\n", filename);
+      return STATUS_ERR;
+    }
     #else
     fprintf(stderr,"WRITE:Unsupported file format (%s)!\n", filename);
     #endif 
