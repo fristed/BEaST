@@ -51,6 +51,34 @@ static ArgvInfo defaultTable[] = {
  */
 
 static void	PrintUsage _ANSI_ARGS_((ArgvInfo *argTable, int flags));
+static void     PrintVersion(ArgvInfo *argTable);
+
+/*
+ * ParseLong
+ *
+ * Quick replacement for strtol which eliminates the undesirable property
+ * of interpreting numbers with leading '0' characters as octal, while 
+ * retaining "0x" as indicating a hexidecimal number.
+ */
+long int
+ParseLong(const char *argPtr, char **endPtr)
+{
+  const char *tmpPtr = argPtr;
+
+  /* Skip sign if present.
+   */
+  if (tmpPtr[0] == '+' || tmpPtr[0] == '-')
+    tmpPtr++;
+
+  /* If '0x' or '0X', treat this as hex.
+   */
+  if (tmpPtr[0] == '0' && (tmpPtr[1] == 'x' || tmpPtr[1] == 'X'))
+    return strtol(argPtr, endPtr, 16);
+
+  /* Otherwise, treat it as decimal. Octal is excluded.
+   */
+  return strtol(argPtr, endPtr, 10);
+}
 
 /*
  *----------------------------------------------------------------------
@@ -190,7 +218,7 @@ ParseArgv(argcPtr, argv, argTable, flags)
                char *endPtr;
 
                *(((int *) infoPtr->dst)+i) =
-                  strtol(argv[srcIndex], &endPtr, 0);
+                  ParseLong(argv[srcIndex], &endPtr);
                if ((endPtr == argv[srcIndex]) || (*endPtr != 0)) {
                   FPRINTF(stderr, 
                   "expected integer argument for \"%s\" but got \"%s\"",
@@ -212,7 +240,7 @@ ParseArgv(argcPtr, argv, argTable, flags)
                char *endPtr;
 
                *(((long *) infoPtr->dst)+i) =
-                  strtol(argv[srcIndex], &endPtr, 0);
+                  ParseLong(argv[srcIndex], &endPtr);
                if ((endPtr == argv[srcIndex]) || (*endPtr != 0)) {
                   FPRINTF(stderr, 
                   "expected integer argument for \"%s\" but got \"%s\"",
