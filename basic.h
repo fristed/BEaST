@@ -95,7 +95,7 @@
 #endif
 #define ROUND( x ) ((long) ((x) + ( ((x) >= 0) ? 0.5 : (-0.5) ) ))
 
-#ifndef DEF_VOLUME_IO
+#ifndef HAVE_MINC
 typedef int VIO_BOOL;
 typedef double VIO_Real;
 #endif
@@ -104,7 +104,7 @@ typedef double VIO_Real;
 typedef int nc_type;
 #endif
 
-#ifndef NC_DOUBLE
+#ifndef HAVE_MINC
 #define NC_NAT          0       /* NAT = 'Not A Type' (c.f. NaN) */
 #define NC_BYTE         1       /* signed 1 byte integer */
 #define NC_CHAR         2       /* ISO/ASCII character */
