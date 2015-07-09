@@ -1,0 +1,1 @@
+INSTALL(PROGRAMS beast_normalize beast_prepareADNIlib DESTINATION bin)

@@ -51,6 +51,34 @@ static ArgvInfo defaultTable[] = {
  */
 
 static void	PrintUsage _ANSI_ARGS_((ArgvInfo *argTable, int flags));
+static void     PrintVersion(ArgvInfo *argTable);
+
+/*
+ * ParseLong
+ *
+ * Quick replacement for strtol which eliminates the undesirable property
+ * of interpreting numbers with leading '0' characters as octal, while 
+ * retaining "0x" as indicating a hexidecimal number.
+ */
+long int
+ParseLong(const char *argPtr, char **endPtr)
+{
+  const char *tmpPtr = argPtr;
+
+  /* Skip sign if present.
+   */
+  if (tmpPtr[0] == '+' || tmpPtr[0] == '-')
+    tmpPtr++;
+
+  /* If '0x' or '0X', treat this as hex.
+   */
+  if (tmpPtr[0] == '0' && (tmpPtr[1] == 'x' || tmpPtr[1] == 'X'))
+    return strtol(argPtr, endPtr, 16);
+
+  /* Otherwise, treat it as decimal. Octal is excluded.
+   */
+  return strtol(argPtr, endPtr, 10);
+}
 
 /*
  *----------------------------------------------------------------------
@@ -178,10 +206,10 @@ ParseArgv(argcPtr, argv, argTable, flags)
       infoPtr = matchPtr;
       switch (infoPtr->type) {
       case ARGV_CONSTANT:
-         *((int *) infoPtr->dst) = (int) infoPtr->src;
+         *((int *) infoPtr->dst) = (intptr_t) infoPtr->src;
          break;
       case ARGV_INT:
-         nargs = (int) infoPtr->src;
+         nargs = (intptr_t) infoPtr->src;
          if (nargs<1) nargs=1;
          for (i=0; i<nargs; i++) {
             if (argc == 0) {
@@ -190,7 +218,7 @@ ParseArgv(argcPtr, argv, argTable, flags)
                char *endPtr;
 
                *(((int *) infoPtr->dst)+i) =
-                  strtol(argv[srcIndex], &endPtr, 0);
+                  ParseLong(argv[srcIndex], &endPtr);
                if ((endPtr == argv[srcIndex]) || (*endPtr != 0)) {
                   FPRINTF(stderr, 
                   "expected integer argument for \"%s\" but got \"%s\"",
@@ -203,7 +231,7 @@ ParseArgv(argcPtr, argv, argTable, flags)
          }
          break;
       case ARGV_LONG:
-         nargs = (int) infoPtr->src;
+         nargs = (intptr_t) infoPtr->src;
          if (nargs<1) nargs=1;
          for (i=0; i<nargs; i++) {
             if (argc == 0) {
@@ -212,7 +240,7 @@ ParseArgv(argcPtr, argv, argTable, flags)
                char *endPtr;
 
                *(((long *) infoPtr->dst)+i) =
-                  strtol(argv[srcIndex], &endPtr, 0);
+                  ParseLong(argv[srcIndex], &endPtr);
                if ((endPtr == argv[srcIndex]) || (*endPtr != 0)) {
                   FPRINTF(stderr, 
                   "expected integer argument for \"%s\" but got \"%s\"",
@@ -226,7 +254,7 @@ ParseArgv(argcPtr, argv, argTable, flags)
          break;
 
       case ARGV_STRING:
-         nargs = (int) infoPtr->src;
+         nargs = (intptr_t) infoPtr->src;
          if (nargs<1) nargs=1;
          for (i=0; i<nargs; i++) {
             if (argc == 0) {
@@ -242,7 +270,7 @@ ParseArgv(argcPtr, argv, argTable, flags)
          *((int *) infoPtr->dst) = dstIndex;
          goto argsDone;
       case ARGV_FLOAT:
-         nargs = (int) infoPtr->src;
+         nargs = (intptr_t) infoPtr->src;
          if (nargs<1) nargs=1;
          for (i=0; i<nargs; i++) {
             if (argc == 0) {
@@ -403,7 +431,7 @@ PrintUsage(argTable, flags)
          switch (infoPtr->type) {
          case ARGV_INT: {
             FPRINTF(stderr, "\n\t\tDefault value:");
-            nargs = (int) infoPtr->src;
+            nargs = (intptr_t) infoPtr->src;
             if (nargs<1) nargs=1;
             for (j=0; j<nargs; j++) {
                FPRINTF(stderr, " %d", *(((int *) infoPtr->dst)+j));
@@ -412,7 +440,7 @@ PrintUsage(argTable, flags)
          }
          case ARGV_FLOAT: {
             FPRINTF(stderr, "\n\t\tDefault value:");
-            nargs = (int) infoPtr->src;
+            nargs = (intptr_t) infoPtr->src;
             if (nargs<1) nargs=1;
             for (j=0; j<nargs; j++) {
                FPRINTF(stderr, " %g", *(((double *) infoPtr->dst)+j));
@@ -422,7 +450,7 @@ PrintUsage(argTable, flags)
          case ARGV_STRING: {
             char *string;
 
-            nargs = (int) infoPtr->src;
+            nargs = (intptr_t) infoPtr->src;
             if (nargs<1) nargs=1;
             string = *((char **) infoPtr->dst);
             if ((nargs==1) && (string == NULL)) break;

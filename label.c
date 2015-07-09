@@ -36,17 +36,17 @@
                                        else \
                                          current=-2;
 
-int label_volume_wrap_real(Volume_wrap *woriginal, Volume_wrap *wlabeled, Real iso, int **label_sizes, byte connectivity) {
+int label_volume_wrap_real(Volume_wrap *woriginal, Volume_wrap *wlabeled, VIO_Real iso, int **label_sizes, byte connectivity) {
 
   int sizes[3];
   int x,y,z;
-  Real voxel;
+  VIO_Real voxel;
   point3D *stack, current_voxel, new_voxel;
   unsigned short lvoxel,label=1;
   int current, i, marked=0, j,k,count;
   int **mask,label_alloc_size=0;
   short ***sdata;
-  Real ***rdata;
+  VIO_Real ***rdata;
 
   /* Creating mask corresponding to connectivity */
   if(connectivity==26){
@@ -107,7 +107,7 @@ int label_volume_wrap_real(Volume_wrap *woriginal, Volume_wrap *wlabeled, Real i
   wlabeled->sign=TRUE;
   sdata=(short ***)alloc_data3D(sizes,sizeof(short));
   wlabeled->data = sdata;
-  rdata = (Real ***)woriginal->data;
+  rdata = (VIO_Real ***)woriginal->data;
 
   /* Allocate stack */
   stack = malloc(sizes[0]*sizes[1]*sizes[2]*sizeof(*stack));
@@ -180,7 +180,7 @@ int label_volume_wrap_real(Volume_wrap *woriginal, Volume_wrap *wlabeled, Real i
 
 }
 
-int getLargestObject_float(float *input, int *sizes, Real lblValue, int object_no){
+int getLargestObject_float(float *input, int *sizes, VIO_Real lblValue, int object_no){
   int x,y,z,kept,index,i,j,k;
   Volume_wrap wrap, wlabeled;
   short ***sdata_l;  
@@ -243,7 +243,7 @@ int cmp_int(const void *vp, const void *vq){
   return ((diff>=0) ? ((diff>0) ? +1 : 0) : -1);  
 }
 
-int getLargestObject_wrap(Volume_wrap *wvol, Volume_wrap *wlabeled, int *sizes, Real lblValue, int object_no){
+int getLargestObject_wrap(Volume_wrap *wvol, Volume_wrap *wlabeled, int *sizes, VIO_Real lblValue, int object_no){
   int x,y,z,i;
   int largest_lbl,*label_sizes=NULL,*array_copy,labels,kept=0;
   short voxel;

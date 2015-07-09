@@ -61,4 +61,7 @@ void free_2d_char(char **ptr);
 void free_3d_int(int ***ptr);
 void free_4d(int ****ptr);
 
+
+void free_meta(image_metadata* meta);
+
 #endif

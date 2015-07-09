@@ -26,25 +26,25 @@
 #include <float.h>
 #include "mincio.h"
 
-void set_volume(float *data, Volume vol, int *sizes){
+void set_volume(float *data, VIO_Volume vol, int *sizes){
   int i,j,k;
 
   for (i=0;i<sizes[0];i++)
     for (j=0;j<sizes[1];j++)
       for (k=0;k<sizes[2];k++)
-	data[i*sizes[1]*sizes[2]+j*sizes[2]+k] = get_volume_real_value(vol,i,j,k,0,0);
+        data[i*sizes[1]*sizes[2]+j*sizes[2]+k] = get_volume_real_value(vol,i,j,k,0,0);
 }
 
-void get_volume(float *data, Volume vol, int *sizes){
+void get_volume(float *data, VIO_Volume vol, int *sizes){
   int i,j,k;
 
   for (i=0;i<sizes[0];i++)
     for (j=0;j<sizes[1];j++)
       for (k=0;k<sizes[2];k++)
-	set_volume_real_value(vol,i,j,k,0,0,data[i*sizes[1]*sizes[2]+j*sizes[2]+k]);
+          set_volume_real_value(vol,i,j,k,0,0,data[i*sizes[1]*sizes[2]+j*sizes[2]+k]);
 }
 
-int write_volume(char *name, Volume vol, float *data){
+int write_volume(char *name, VIO_Volume vol, float *data){
   int i,j,k,index,sizes[5];
   float min=FLT_MAX,max=FLT_MIN;
 
@@ -71,24 +71,39 @@ int write_volume(char *name, Volume vol, float *data){
   return STATUS_OK;
 }
 
-int write_minc(char *filename, float *image, image_metadata *meta){
-  Volume volume;
+int write_minc(char *filename, float *image, image_metadata *meta,VIO_BOOL binary_mask){
+  VIO_Volume volume;
   int i,j,k,index;
   float min=FLT_MAX,max=FLT_MIN;
-  Real dummy[3];
+  VIO_Real dummy[3];
+
+  if(binary_mask)
+  {
+    volume = create_volume(3,NULL,NC_BYTE,FALSE,0.0,1.0);
+    printf("Writing a binary volume...\n");
+  }
+  else 
+    volume = create_volume(3,NULL,NC_FLOAT,FALSE,FLT_MIN,FLT_MAX);
   
-  volume = create_volume(3,NULL,NC_FLOAT,FALSE,FLT_MIN,FLT_MAX);
-    
-  for (i=0;i<meta->length[0];i++){
-    for (j=0;j<meta->length[1];j++){
-      for (k=0;k<meta->length[2];k++){	  
-	index=i*meta->length[2]*meta->length[1] + j*meta->length[2] + k;
-	min=MIN(min,image[index]);
-	max=MAX(max,image[index]);
+  if(!volume)
+    return STATUS_ERR;
+  
+  if(!binary_mask)
+  {
+    for (i=0;i<meta->length[0];i++){
+      for (j=0;j<meta->length[1];j++){
+        for (k=0;k<meta->length[2];k++){	  
+          index=i*meta->length[2]*meta->length[1] + j*meta->length[2] + k;
+          min=MIN(min,image[index]);
+          max=MAX(max,image[index]);
+        }
       }
     }
+    set_volume_real_range(volume,min,max);
+  } else {
+    set_volume_real_range(volume,0.0,1.0);
   }
-  set_volume_real_range(volume,min,max);
+  
   set_volume_sizes(volume,meta->length);
   dummy[0]=meta->start[0];
   dummy[1]=meta->start[1];
@@ -102,25 +117,28 @@ int write_minc(char *filename, float *image, image_metadata *meta){
   alloc_volume_data(volume);
     
   get_volume(image, volume, meta->length);
-    
-  output_volume( filename, NC_FLOAT,FALSE,min,max,volume,NULL,(minc_output_options *)NULL);
+
+  if(!binary_mask)
+    output_volume( filename, NC_FLOAT,FALSE,min, max,volume,meta->history,(minc_output_options *)NULL);
+  else
+    output_volume( filename, NC_BYTE,FALSE,0, 1.0,volume,meta->history,(minc_output_options *)NULL);
     
   delete_volume(volume);
 
-  return 0;
+  return STATUS_OK;
 }
 
 image_metadata * read_minc(char *filename, float **image, int *sizes){
-  Volume volume;
-  Real dummy[3];
+  VIO_Volume volume;
+  VIO_Real dummy[3];
   image_metadata *meta;
   
-  if( input_volume(filename, 3, NULL, NC_UNSPECIFIED, FALSE, 0.0, 0.0, TRUE, &volume, (minc_input_options *) NULL ) != OK )
+  if( input_volume(filename, 3, NULL, NC_UNSPECIFIED, FALSE, 0.0, 0.0, TRUE, &volume, (minc_input_options *) NULL ) != VIO_OK )
       return( NULL );
 
     meta = (image_metadata *)calloc( 1 , sizeof(image_metadata) ) ;
-    meta->start = calloc(3,sizeof(float));
-    meta->step = calloc(3,sizeof(float));
+    meta->start  = calloc(3,sizeof(float));
+    meta->step   = calloc(3,sizeof(float));
     meta->length = calloc(3,sizeof(int));
 
     get_volume_sizes(volume,sizes);

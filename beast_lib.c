@@ -286,7 +286,7 @@ int cmp_ssd(const void *vp, const void *vq){
 }
 
 
-inline float get_ssd(float *I1, float *I2, float *mask, int *sizes){
+static inline  float get_ssd(float *I1, float *I2, float *mask, int *sizes){
   int j,k,l,index,count=0;
   float ssd=0;
 
@@ -663,9 +663,10 @@ int flood_fill_float(float *data, float *output, int *sizes, int sx, int sy, int
 
 
 int read_configuration(char *filename, beast_conf *conf){
-  int size=0;
+  int i,size=0;
   FILE *fd;
   char line[FILENAMELENGTH];
+  VIO_BOOL issane=TRUE;
 
   fd=fopen(filename,"r");
 
@@ -685,8 +686,26 @@ int read_configuration(char *filename, beast_conf *conf){
 
   fclose(fd);
 
+  /* configuration sanity check */
+  for (i=0;i<size;i++){
+    if ((conf[i].voxelsize > VOXELSIZEMAX) || (conf[i].voxelsize < VOXELSIZEMIN))
+      issane = FALSE;
+    if ((conf[i].patchsize > PATCHSIZEMAX) || (conf[i].patchsize < PATCHSIZEMIN))
+      issane = FALSE;
+    if ((conf[i].searcharea > SEARCHAREAMAX) || (conf[i].searcharea < SEARCHAREAMIN))
+      issane = FALSE;
+    if ((conf[i].alpha > ALPHAMAX) || (conf[i].alpha < ALPHAMIN))
+      issane = FALSE;
+    if ((conf[i].beta > BETAMAX) || (conf[i].beta < BETAMIN))
+      issane = FALSE;
+    if ((conf[i].threshold > THRESHOLDMAX) || (conf[i].threshold < THRESHOLDMIN))
+      issane = FALSE;
+  }
 
-  return size;
+  if (issane)
+    return size;
+  else
+    return STATUS_ERR;
 }
 
 
@@ -711,12 +730,13 @@ int read_list(char *filename, char **list,char *basedir) {
 }
 
 
-int pre_selection(float *subject, float *mask, char **images, int *sizes, int librarysize, int num_selected, int *selection, char *outfile, BOOLEAN verbose){
+int pre_selection(float *subject, float *mask, char **images, int *sizes, int librarysize, int num_selected, int *selection, char *outfile, VIO_BOOL verbose){
   int i;
   int volumesize;
   float *imagedata;
   ssd_t *ssd;
   FILE *fd;
+  image_metadata *_meta;
 
   fprintf(stderr,"Performing pre-selection ");
 
@@ -728,11 +748,12 @@ int pre_selection(float *subject, float *mask, char **images, int *sizes, int li
   for (i=0;i<librarysize;i++){
     fprintf(stderr,".");
 
-    read_volume(images[i], &imagedata, sizes);     
+    _meta=read_volume(images[i], &imagedata, sizes);     
 
     ssd[i].index=i;
     ssd[i].ssd=get_ssd(subject,imagedata,mask,sizes);
     free(imagedata);
+    free_meta(_meta);
   }
 
   qsort(ssd,librarysize,sizeof(ssd_t),cmp_ssd);
@@ -746,13 +767,13 @@ int pre_selection(float *subject, float *mask, char **images, int *sizes, int li
 
   for (i=0;i<num_selected;i++){   
     selection[i] = ssd[i].index;
-    if ((verbose) || (outfile!=NULL))  fprintf(fd,"%s\n",images[selection[i]]);
+    if ((verbose) || (outfile!=NULL))  fprintf(fd,"%s %f\n",images[selection[i]],ssd[i].ssd);
   }
   
 
   if (outfile!=NULL)
     fclose(fd);
-
+  free(ssd);
   return STATUS_OK;
 }
 
@@ -764,16 +785,20 @@ image_metadata * read_volume(char *filename, float **data, int *sizes){
   #ifdef HAVE_MINC
     meta = read_minc(filename, data, sizes);
   #else
-    fprintf(stderr,"READ: unsupported file format\n");
+    fprintf(stderr,"READ: unsupported file format (%s)\n", filename);
     return NULL;
   #endif
 
   }else{
     #ifdef HAVE_NIFTI
-    /* assume nifti */
-    meta = read_nifti(filename, data, sizes);
+    if (!strcmp("nii",filename + strlen(filename)-3) || !strcmp("nii.gz",filename + strlen(filename)-6)){
+      meta = read_nifti(filename, data, sizes);
+    } else {
+      fprintf(stderr,"READ: unsupported file format (%s)\n", filename);
+      return NULL;
+    }
    #else 
-    fprintf(stderr,"READ: unsupported file format\n");
+    fprintf(stderr,"READ: unsupported file format (%s)\n", filename);
     return NULL;
    #endif
   }
@@ -783,11 +808,14 @@ image_metadata * read_volume(char *filename, float **data, int *sizes){
   fprintf(stderr,"READ: Start coordinates: %f, %f, %f\n",meta->start[0],meta->start[1],meta->start[2]);
   fprintf(stderr,"READ: Step values: %f, %f, %f\n",meta->step[0],meta->step[1],meta->step[2]);
 #endif
+  
+  if(meta)
+    meta->history = NULL;
 
   return meta;
 }
 
-int write_volume_generic(char *filename, float *data, image_metadata *meta){
+int write_volume_generic(char *filename, float *data, image_metadata *meta,VIO_BOOL binary_mask){
 
 #ifdef DEBUG
   fprintf(stderr,"WRITE: Dimension sizes: %d, %d, %d\n",meta->length[0],meta->length[1],meta->length[2]);
@@ -798,17 +826,21 @@ int write_volume_generic(char *filename, float *data, image_metadata *meta){
   /* if minc format */
   if (!strcmp("mnc",filename + strlen(filename)-3)){
     #ifdef HAVE_MINC
-    write_minc(filename, data, meta);
+    if(write_minc(filename, data, meta,binary_mask))
+    {
+      fprintf(stderr,"WRITE:Error writing file (%s)!\n", filename);
+      return STATUS_ERR;
+    }
     #else
-    fprintf(stderr,"WRITE:Unsupported file format!\n");
+    fprintf(stderr,"WRITE:Unsupported file format (%s)!\n", filename);
     #endif 
     
   }else{
     #ifdef HAVE_NIFTI
     /* assume nifti */
-    write_nifti_generic(filename, data, meta);
+    write_nifti_generic(filename, data, meta);/*TODO: can nifti write binary masks?*/
     #else
-    fprintf(stderr,"WRITE:Unsupported file format!\n");
+    fprintf(stderr,"WRITE:Unsupported file format (%s)!\n", filename);
     #endif 
   }
   

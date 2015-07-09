@@ -39,6 +39,19 @@
 #define MAXLIBSIZE 1000
 #define FILENAMELENGTH 255
 
+#define VOXELSIZEMAX 4
+#define VOXELSIZEMIN 1
+#define PATCHSIZEMAX 10
+#define PATCHSIZEMIN 0
+#define SEARCHAREAMAX 10
+#define SEARCHAREAMIN 0
+#define ALPHAMAX 1.0
+#define ALPHAMIN 0.0
+#define BETAMAX 5.0
+#define BETAMIN 0.0
+#define THRESHOLDMAX 1.0
+#define THRESHOLDMIN 0.0
+
 typedef struct {
   int index;
   float ssd;
@@ -78,12 +91,12 @@ int update_mask(float *subject, float *mask, float *segmented, int *sizes, float
 
 int flood_fill_float(float *data, float *output, int *sizes, int sx, int sy, int sz, float fill_value, int connectivity);
 
-int pre_selection(float *subject, float *mask, char **images, int *sizes, int librarysize, int num_selected, int *selection, char *outfile, BOOLEAN verbose);
+int pre_selection(float *subject, float *mask, char **images, int *sizes, int librarysize, int num_selected, int *selection, char *outfile, VIO_BOOL verbose);
 
 int read_configuration(char *filename, beast_conf *conf);
 int read_list(char *filename, char **list,char *basedir);
 
 image_metadata * read_volume(char *filename, float **data, int *sizes);
-int write_volume_generic(char *filename, float *data, image_metadata *meta);
+int write_volume_generic(char *filename, float *data, image_metadata *meta,VIO_BOOL binary_mask );
 
 #endif

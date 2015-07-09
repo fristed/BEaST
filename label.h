@@ -32,7 +32,7 @@
 typedef struct Volume_wrap {
   nc_type type;
   byte type_size;
-  BOOLEAN sign;
+  VIO_BOOL sign;
   int sizes[3];
   void *data;
 } Volume_wrap;
@@ -40,6 +40,6 @@ typedef struct Volume_wrap {
 void ***alloc_data3D(int sizes[3],byte size_element);
 void free_wrap(Volume_wrap *wrap);
 
-int getLargestObject_float(float *input, int *sizes, Real lblValue, int object_no);
+int getLargestObject_float(float *input, int *sizes, VIO_Real lblValue, int object_no);
 
 #endif

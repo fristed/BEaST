@@ -1,0 +1,77 @@
+This explains how to download and install existing libraries for BEaST.
+
+0. Optionally install MINC Tool Kit as explained here:
+http://www.bic.mni.mcgill.ca/ServicesSoftware/ServicesSoftwareMincToolKit
+Step 2.4 below and the normalization script (beast_normalize) depends on MINC tools.
+
+1. Download and install ICBM BEaST library
+1.1 Download the latest beast library here http://packages.bic.mni.mcgill.ca/tgz/
+1.2 Extract the archive and move it to somewhere convenient, e.g. /opt/minc/share
+$ tar zxf beast-library-1.1.tar.gz
+$ sudo mv beast-library-1.1 /opt/minc/share/
+
+2. Download and install ADNI BEaST library (optional)
+2.1 Login to the ADNI database at http://adni.loni.ucla.edu/
+2.2 Go to "Advanced Image Search (beta)" and select "Pre-processed"
+under "Image Types" and "Image Processing" under "Search Section" in
+the left panel. Then write BEaST* in "Description" under "Image
+Processing" in the main panel and hit "Search". You should get 120
+images, 60 T1s and 60 masks, you can download. Select all and add to
+collection (name it e.g. "BEaST library"). In the Data Collections
+tab, download all the images in the collection as MINC. (Make sure you
+have a java plugin installed. Otherwise you cannot
+download. Instructions for Java setup is here:
+http://www.duinsoft.nl/packages.php?t=en )
+
+2.3 Source the minc-toolkit (if installed):
+$ source /opt/minc/minc-toolkit-config.sh
+
+2.4 Generate library by running:
+$ beast_prepareADNIlib -flip <ADNI download directory> <BEaST library directory>
+Example:
+$ sudo beast_prepareADNIlib -flip Downloads/ADNI /opt/minc/share/beast-library-1.1
+
+3. Test the setup
+3.1 Normalize your data
+$ beast_normalize -modeldir /opt/minc/share/icbm152_model_09c input.mnc normal.mnc normal.xfm
+3.2 Run BEaST
+$ mincbeast /opt/minc/share/beast-library-1.1 normal.mnc brainmask.mnc -conf /opt/minc/share/beast-library-1.1/default.2mm.conf -same_res
+
+
+Tailoring your own library
+--------------------------
+The best way to improve your results is to populate the library with
+images/masks from the same scanner as the the images you are trying to
+segment. One way to do this is to run BEaST with the default ICBM/ADNI
+images and then select the best masks among the results, possibly
+perform some manual corrections, and put them into the library. Then
+run BEaST again. This bootstrapping method can be performed
+iteratively with increasing performance improvements.
+
+To add your own images/masks you must downsample the images/masks to
+2mm and 4mm voxel sizes. This can be done using minc_downsample from
+the MINC Tool Kit package. For example:
+
+$ minc_downsample --3dfactor 2 T1_1mm.mnc T1_2mm.mnc
+$ minc_downsample --3dfactor 4 T1_1mm.mnc T1_4mm.mnc
+
+You may also want to L/R flip the images to increase your N. This can
+be done using flip_volume. For example:
+
+$ flip_volume T1_1mm.mnc T1_1mm_flip.mnc
+
+Finally, you need to update the library files to include your new images/masks. The files to update are:
+
+library.masks.1mm
+library.masks.2mm
+library.masks.4mm
+library.stx.1mm
+library.stx.2mm
+library.stx.4mm
+
+Note that unless you always use -abspath when running mincbeast, the
+paths in these files are relative to the BEaST library path. Other
+than that there are no restrictions on file naming and
+placement. BEaST assumes the same order of images/masks across the
+library files, so pay special attention to the order of the file
+names.
